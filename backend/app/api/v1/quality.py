@@ -15,6 +15,7 @@ from ...schemas.quality import (
     ArchiveIn,
     ArchiveOut,
     ArchiveVerifyOut,
+    ChecklistExportOut,
     CorrectionApproveIn,
     CorrectionArtifactOut,
     CorrectionOut,
@@ -84,6 +85,20 @@ def list_qc_checks(
     user: User = Depends(get_current_user),
 ) -> list[QcRunOut]:
     return [QcRunOut.model_validate(r) for r in quality.list_qc_checks(db, project_id)]
+
+
+@router.post("/export-checklist/{project_id}", response_model=ChecklistExportOut, status_code=201,
+             summary="完成情况核对表出稿（FR-06-01：6600 模板保真写回，质控检查报告归档载体；QU-1020 指纹拒绝→422）")
+def export_checklist(
+    project_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ChecklistExportOut:
+    try:
+        template_key, file_key = quality.export_checklist(db, user, project_id)
+    except (quality.NotFound, quality.Locked, quality.ProjectFrozen, ValueError) as exc:
+        raise _http_for(exc) from exc
+    return ChecklistExportOut(project_id=project_id, template_key=template_key, file_key=file_key)
 
 
 @router.post("/inspection-pack", response_model=InspectionPackOut, status_code=201,

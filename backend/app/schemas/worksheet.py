@@ -101,3 +101,12 @@ class CrossRefsOut(BaseModel):
     cross_refs: list[dict]
     broken_refs: list[str] = Field(description="断链清单（引用编号在本项目不存在，R7）")
     ok: bool
+
+
+class ReviewSheetOut(BaseModel):
+    """复核核对表出稿结果（FR-05-02；6700 保真写回产物）。"""
+
+    worksheet_id: str
+    worksheet_status: str
+    template_key: str
+    file_key: str

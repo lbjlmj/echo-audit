@@ -18,6 +18,7 @@ from io import BytesIO
 from pathlib import Path
 
 from openpyxl import load_workbook
+from openpyxl.cell.cell import MergedCell
 
 from ..engine.fingerprint import compute_fingerprint, verify_structure
 from .storage import ObjectStorage
@@ -88,11 +89,22 @@ def render_fidelity(
     unknown = sorted(set(fields) - allowed)
     if unknown:
         raise ValueError(f"{err_code} 写回字段越出模板白名单：{unknown}")
+
+    def _writable(ws, coord: str):
+        """白名单坐标 → 可写单元格：合并区内的坐标落到锚点格（MergedCell 只读）。"""
+        cell = ws[coord]
+        if not isinstance(cell, MergedCell):
+            return cell
+        for rng in ws.merged_cells.ranges:
+            if coord in rng:
+                return ws.cell(row=rng.min_row, column=rng.min_col)
+        return cell  # 不在任何合并区（理论不可达）：原样返回由赋值报错兜底
+
     for sheet, cells in entry["fill_cells"].items():
         ws = wb[sheet]
         for coord in cells:
             if coord in fields:
-                ws[coord] = fields[coord]
+                _writable(ws, coord).value = fields[coord]
 
     buf = BytesIO()
     wb.save(buf)

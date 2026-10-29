@@ -16,6 +16,8 @@ from ...schemas.confirmation import (
     ConfirmationOut,
     IssueIn,
     LedgerIn,
+    LetterOut,
+    LetterRenderIn,
     ReplyIn,
     TrailOut,
 )
@@ -138,6 +140,28 @@ def propose_alt_test(
     ) as exc:
         raise _http_for(exc) from exc
     return ConfirmationOut.model_validate(row)
+
+
+@router.post("/{confirmation_id}/letter", response_model=LetterOut, status_code=201,
+             summary="函证件出稿（FR-04-01：询证函模板保真写回，金额不出站；CF-1010 指纹拒绝→422）")
+def render_letter(
+    confirmation_id: str,
+    body: LetterRenderIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> LetterOut:
+    try:
+        row, file_key, template_key, letter_no = confirmations.render_confirmation_letter(
+            db, user, confirmation_id, template_key=body.template_key,
+        )
+    except (
+        confirmations.NotFound, confirmations.Locked, confirmations.ProjectFrozen, ValueError,
+    ) as exc:
+        raise _http_for(exc) from exc
+    return LetterOut(
+        confirmation_id=row.id, template_key=template_key,
+        letter_no=letter_no, file_key=file_key,
+    )
 
 
 @router.post("/{confirmation_id}/close", response_model=ConfirmationOut,

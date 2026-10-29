@@ -27,17 +27,19 @@ from ...ai import pipeline
 from ...core.audit_middleware import append_trail, verify_chain
 from ...core.permissions import QC, Level, PermissionDenied, assert_allowed
 from ...core.storage import get_storage
+from ...engine.industry_matrix import domain_template_key
 from ...engine.stage_gate import GATE_APPROVERS, GATE_CONDITION_KEYS, STAGES, pass_gate
 from ...engine.state_machines import CORRECTION, PROJECT, WORKSHEET, IllegalTransition
 from ...models.audit import AIRun as AIRunORM
 from ...models.confirmation import Confirmation
 from ...models.finding import AuditReport, Finding
 from ...models.knowledge import RuleAnchor
-from ...models.project import AuditProject, StageGate
+from ...models.project import AuditProject, Client, StageGate
 from ...models.quality import CORRECTION_OPEN_STATUSES, ArchiveCorrection
 from ...models.risk import AuditProgram, RiskItem
 from ...models.user import User
 from ...models.worksheet import Worksheet, WorksheetReview, WorksheetVersion
+from . import render as qc_render
 
 # QU-1xxx 质控域错误码
 CODE_GATE = "QU-1001"
@@ -1031,3 +1033,35 @@ def build_inspection_pack(db: Session, operator: User, project_id: str) -> dict[
         "anchor_map": anchor_map, "report": report,
         "package_digest": package_digest, "generated_at": _now(),
     }
+
+
+def export_checklist(db: Session, operator: User, project_id: str) -> tuple[str, str]:
+    """完成情况核对表出稿（FR-06-01，archive.access ≥ OPERATE）：6600 模板保真写回。
+
+    质控检查报告的归档载体：仅填核对表表头要素（被审计单位/编制=质控专员/日期），
+    检查结论勾选区留人工核对。模板键按项目业务类型准则路由（小企业准则 →
+    checklist-sme 独立键，engine 单点）。QU-1020 指纹/登记类拒绝（ValueError 子类）
+    向上 → 路由 422，落盘对象已删，天然回滚。
+    """
+    assert_allowed(operator.global_role, "archive.access", Level.OPERATE)
+    project = _get_project(db, project_id)
+    _assert_writable(project)
+    client = db.get(Client, project.client_id)
+    if client is None:
+        raise NotFound(f"{CODE_NOT_FOUND} 项目客户缺失")
+
+    fields = qc_render.build_checklist_fields(
+        auditee=client.name, preparer=operator.name,
+        prepared_at=_now().date().isoformat(),
+    )
+    template_key = domain_template_key("checklist", project.business_type)
+    object_key = f"quality/{project_id}/checklist-6600.xlsx"
+    qc_render.render_checklist(
+        fields, template_key, storage=get_storage(), object_key=object_key,
+    )
+    append_trail(
+        db, tenant_id=operator.tenant_id, entity_type="audit_project", entity_id=project_id,
+        action="完成情况核对表出稿", operator=operator.name,
+        after={"template_key": template_key, "file_key": object_key},
+    )
+    return template_key, object_key

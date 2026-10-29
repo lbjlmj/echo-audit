@@ -135,3 +135,33 @@ def scope_of(business_type: str) -> dict[str, Any]:
         "worksheet_templates": [dict(t) for t in matrix["worksheet_templates"]],
         "note": "行业模板矩阵随版本发布（数据即代码）",
     }
+
+
+# ---------------------------------------------------------------------------
+# 域级出稿模板准则路由（数据即代码，单点）
+# ---------------------------------------------------------------------------
+# 业务类型 → 域级出稿模板键（计划/复核/核对表/往来询证函）：
+# 小企业准则项目用 SME 独立键（-sme 后缀，manifest 同键登记），其余默认企业准则。
+# 银行询证函为监管统一版式（两准则模板包文件字节一致），不随准则变化共用 bank 键。
+SME_BUSINESS_TYPES = ("小企业准则",)
+DOMAIN_TEMPLATE_KEYS: dict[str, dict[str, str]] = {
+    "plan": {"cas": "plan/v2025.xlsx", "sme": "plan-sme/v2025.xlsx"},
+    "review": {"cas": "review/v2025.xlsx", "sme": "review-sme/v2025.xlsx"},
+    "checklist": {"cas": "checklist/v2025.xlsx", "sme": "checklist-sme/v2025.xlsx"},
+    "ar": {"cas": "ar/v2025.xlsx", "sme": "ar-sme/v2025.xlsx"},
+    "bank": {"cas": "bank/v2025.xlsx", "sme": "bank/v2025.xlsx"},
+}
+
+
+def domain_template_key(domain: str, business_type: str) -> str:
+    """域级出稿模板键（准则差异化路由单点）。
+
+    services 各出稿出口（审计计划/复核核对表/完成核对表/函证件）按项目
+    business_type 在此取键，禁止各域散落映射（模板矩阵单点口径）。
+    未登记域直接报错——出稿保真链路宁可拒绝不可错模板。
+    """
+    table = DOMAIN_TEMPLATE_KEYS.get(domain)
+    if table is None:
+        raise ValueError(f"域级模板矩阵未登记：{domain}")
+    slot = "sme" if business_type in SME_BUSINESS_TYPES else "cas"
+    return table[slot]

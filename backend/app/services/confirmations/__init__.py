@@ -1,4 +1,12 @@
-"""confirmations 包：FR-04 函证域（八状态流转 / 回函自动核对 / 超期扫描）。"""
+"""confirmations 包：FR-04 函证域（八状态流转 / 回函自动核对 / 超期扫描 / 函证件出稿）。"""
+from .letter import (
+    FingerprintMismatch,
+    TEMPLATE_DIR as LETTER_TEMPLATE_DIR,
+    TYPE_DOMAINS,
+    TemplateNotRegistered,
+    build_letter_fields,
+    render_letter,
+)
 from .service import (
     Locked,
     NotFound,
@@ -11,20 +19,28 @@ from .service import (
     list_trails,
     propose_alt_test,
     register_reply,
+    render_confirmation_letter,
     run_overdue_scan,
 )
 
 __all__ = [
+    "LETTER_TEMPLATE_DIR",
     "Locked",
     "NotFound",
     "ProjectFrozen",
+    "TemplateNotRegistered",
     "TransitionRejected",
+    "TYPE_DOMAINS",
+    "build_letter_fields",
     "close_confirmation",
+    "FingerprintMismatch",
     "generate_ledger",
     "issue_confirmation",
     "list_confirmations",
     "list_trails",
     "propose_alt_test",
     "register_reply",
+    "render_confirmation_letter",
+    "render_letter",
     "run_overdue_scan",
 ]

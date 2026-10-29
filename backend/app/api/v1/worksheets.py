@@ -18,6 +18,7 @@ from ...schemas.worksheet import (
     AiReviewIn,
     ProjectOptionOut,
     ReviewIn,
+    ReviewSheetOut,
     TemplateOptionOut,
     WorksheetCreateIn,
     WorksheetOut,
@@ -246,3 +247,22 @@ def update_cross_refs(
     except (worksheets.NotFound, worksheets.Locked, worksheets.ProjectFrozen) as exc:
         raise _http_for(exc) from exc
     return CrossRefsOut.model_validate(data)
+
+
+@router.post("/{worksheet_id}/review-export", response_model=ReviewSheetOut, status_code=201,
+             summary="复核核对表出稿（FR-05-02：6700 模板保真写回，须复核通过后；WS-1020 指纹拒绝→422）")
+def export_review_sheet(
+    worksheet_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ReviewSheetOut:
+    try:
+        template_key, file_key, status = worksheets.export_review_sheet(db, user, worksheet_id)
+    except (
+        worksheets.NotFound, worksheets.Locked, worksheets.ProjectFrozen, ValueError,
+    ) as exc:
+        raise _http_for(exc) from exc
+    return ReviewSheetOut(
+        worksheet_id=worksheet_id, worksheet_status=status,
+        template_key=template_key, file_key=file_key,
+    )

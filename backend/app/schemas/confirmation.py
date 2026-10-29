@@ -34,6 +34,22 @@ class AltIn(BaseModel):
     alt_test_doc: str = Field(min_length=2, max_length=500, description="替代测试记录/凭据")
 
 
+class LetterRenderIn(BaseModel):
+    template_key: str | None = Field(
+        default=None, max_length=100,
+        description="询证函模板键（空则按台账类型默认：银行→bank、往来→ar）",
+    )
+
+
+class LetterOut(BaseModel):
+    """函证件出稿结果（对象键经 /storage 下载；金额不出站）。"""
+
+    confirmation_id: str
+    template_key: str
+    letter_no: str
+    file_key: str
+
+
 class ConfirmationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

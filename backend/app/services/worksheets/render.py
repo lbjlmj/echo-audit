@@ -29,6 +29,7 @@ __all__ = [
     "FingerprintMismatch",
     "TEMPLATE_DIR",
     "TemplateNotRegistered",
+    "header_coords",
     "load_manifest",
     "render_ai_draft",
 ]
@@ -37,6 +38,21 @@ __all__ = [
 def resolve_template_path(skeleton_key: str) -> tuple[Path, dict]:
     """skeleton_key → 模板文件路径；未登记键直接拒绝（WS-1010）。"""
     return resolve_template(TEMPLATE_DIR, skeleton_key, _ERR_CODE, _DOMAIN)
+
+
+def header_coords(skeleton_key: str) -> dict[str, str] | None:
+    """底稿模板表头语义位：标签 → 值位坐标（真实模板表头横向布局）。
+
+    取登记期识别的首个含标签工作表（各表表头布局统一）；无 header_map
+    登记（占位模板无标签）返回 None，调用方走坐标约定兜底。
+    """
+    entry = load_manifest(TEMPLATE_DIR).get(skeleton_key)
+    if not entry:
+        return None
+    for labels in (entry.get("header_map") or {}).values():
+        if labels:
+            return dict(labels)
+    return None
 
 
 def render_ai_draft(

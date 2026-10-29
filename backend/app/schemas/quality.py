@@ -209,3 +209,11 @@ class RearchiveOut(BaseModel):
     zip_sha256: str
     zip_members: int
     missing_objects: int
+
+
+class ChecklistExportOut(BaseModel):
+    """完成情况核对表出稿结果（FR-06-01；6600 保真写回产物）。"""
+
+    project_id: str
+    template_key: str
+    file_key: str

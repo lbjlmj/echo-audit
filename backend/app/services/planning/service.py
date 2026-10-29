@@ -17,14 +17,17 @@ from sqlalchemy.orm import Session
 from ...ai import pipeline
 from ...core.audit_middleware import append_trail
 from ...core.permissions import Level, assert_allowed
+from ...core.storage import get_storage
+from ...engine.industry_matrix import domain_template_key
 from ...engine.materiality import MaterialityError, compute_materiality
 from ...engine.risk_programs import select_package
 from ...models.audit import AIRun as AIRunORM
 from ...models.knowledge import RuleAnchor
 from ...models.material import VoucherLine
-from ...models.project import AuditProject, StageGate
+from ...models.project import AuditProject, Client, StageGate
 from ...models.risk import AuditProgram, Materiality, RiskItem
 from ...models.user import User
+from . import render as plan_render
 
 # PL-1xxx 计划域错误码
 CODE_NOT_FOUND = "PL-1002"
@@ -400,3 +403,38 @@ def apply_risk_approved(db: Session, operator: User, run_row: AIRunORM) -> None:
         action="风险清单采信（第三段标记）", operator=operator.name,
         after={"run_no": run_row.run_no, "output_digest": run_row.output_digest},
     )
+
+
+def export_plan(db: Session, operator: User, project_id: str) -> tuple[str, str]:
+    """审计计划出稿（FR-02-01，plan.confirm ≥ OPERATE）：2600 模板保真写回（硬约束 8）。
+
+    仅填 2600 主表表头要素（被审计单位/编制/截止日/日期）；2610 重要性表头为跨表
+    公式自动联动，公式区与下拉框零触碰，重要性数值行级取数留二期。
+    模板键按项目业务类型准则路由（小企业准则 → plan-sme 独立键，engine 单点）。
+    PL-1010 指纹/登记类拒绝（ValueError 子类）向上 → 路由 422，落盘对象已删，天然回滚。
+    """
+    assert_allowed(operator.global_role, "plan.confirm", Level.OPERATE)
+    project = db.get(AuditProject, project_id)
+    if project is None:
+        raise NotFound(CODE_NOT_FOUND)
+    _assert_writable(project)
+    client = db.get(Client, project.client_id)
+    if client is None:
+        raise NotFound(CODE_NOT_FOUND)
+
+    today = _now().date().isoformat()
+    fields = plan_render.build_plan_fields(
+        auditee=client.name, preparer=operator.name, period=project.period,
+        prepared_at=today, exported_at=today,
+    )
+    template_key = domain_template_key("plan", project.business_type)
+    object_key = f"planning/{project_id}/plan.xlsx"
+    plan_render.render_plan(
+        fields, template_key, storage=get_storage(), object_key=object_key,
+    )
+    append_trail(
+        db, tenant_id=operator.tenant_id, entity_type="audit_project", entity_id=project_id,
+        action="审计计划出稿", operator=operator.name,
+        after={"template_key": template_key, "file_key": object_key},
+    )
+    return template_key, object_key

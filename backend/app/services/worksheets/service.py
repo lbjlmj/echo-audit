@@ -23,15 +23,17 @@ from ...core.permissions import (
     check_preparer_reviewer_separation,
 )
 from ...core.storage import get_storage
+from ...engine.industry_matrix import domain_template_key
 from ...engine.state_machines import WORKSHEET, IllegalTransition
 from ...models.audit import AIRun as AIRunORM
 from ...models.knowledge import RuleAnchor, Template
 from ...models.material import MATERIAL_LEVELS, Material
-from ...models.project import AuditProject
+from ...models.project import AuditProject, Client
 from ...models.risk import Materiality
 from ...models.user import User
 from ...models.worksheet import Worksheet, WorksheetReview, WorksheetVersion
 from . import render as ws_render
+from . import review_render
 
 # WS-1xxx 底稿域错误码
 CODE_TRANSITION = "WS-1001"  # 非法状态流转（engine 拒绝）
@@ -39,6 +41,7 @@ CODE_NOT_FOUND = "WS-1002"
 CODE_GAP = "WS-1003"  # 三层材料缺口（FR-03-01 不出半成品）
 CODE_FROZEN = "WS-1005"  # 项目暂停冻结
 CODE_LOCKED = "WS-1006"  # 对象锁定（无版本内容/复核标记一次性）
+CODE_PARAM = "WS-1007"  # 出稿前置/参数类拒绝
 
 # 大模型通道默认关闭（§15-15/硬约束 6）：Phase 1 AI 初稿走规则模板确定性生成，
 # llm_enabled=True 且满足三条件门禁后才切换 vLLM 通道。
@@ -304,23 +307,41 @@ def _project_no(db: Session, ws: Worksheet) -> str:
 def _render_ai_draft_xlsx(db: Session, row: AIRunORM) -> str:
     """AI 初稿采信 → 按底稿模板保真写回（硬约束 8，FR-03-02 收口）。
 
-    内容同批可复现、不编造（红线 1）：编制人=AI 触发人、项目编号、底稿编号、
-    准则锚点（红线 2 强制带出）、AI 置空提示（FR-03-02 置空机制）。
-    对象键以 run_no 命名（不可变、版本间不冲突）。任一道闸失败即 ValueError
-    → 422，版本链不落（回滚）。
+    内容同批可复现、不编造（红线 1）：真实模板（manifest 登记 header_map
+    标签语义位）按表头语义填充——被审计单位/索引号/项目/截止日/编制/日期，
+    逐表命中白名单；准则锚点（红线 2）由 Worksheet.rule_anchor_id 落库带出。
+    占位模板（无标签语义登记）沿用要素纵排坐标约定（编制人/项目编号/底稿
+    编号/锚点/AI 置空提示/R8 注记）。对象键以 run_no 命名（不可变、版本间
+    不冲突）。任一道闸失败即 ValueError → 422，版本链不落（回滚）。
     """
     ws = db.get(Worksheet, row.related_id)
     tpl = db.get(Template, ws.template_id)
     author = db.get(User, row.triggered_by)
-    anchor = db.get(RuleAnchor, ws.rule_anchor_id)
-    fields = {
-        "B3": author.name if author else "—",
-        "B4": _project_no(db, ws),
-        "B5": ws.code,
-        "B6": f"{anchor.standard_no} {anchor.clause}" if anchor else "—",
-        "B8": "AI 未能生成，待人工取数（数据区）",
-        "B9": _materiality_note(db, ws.project_id),  # R8 引用：编制错报评估的基准
-    }
+    header = ws_render.header_coords(tpl.skeleton_key)
+    if header:
+        # 真实模板：登记期已识别表头标签语义位（B2=被审计单位、G2=索引号…），
+        # 逐表命中 fill_cells 白名单；复核位不填（AI 初稿阶段复核人未定，不编造）
+        project = db.get(AuditProject, ws.project_id)
+        client = db.get(Client, project.client_id)
+        values = {
+            "被审计单位": client.name,
+            "索引号": ws.code,
+            "项目": ws.title,
+            "截止日": project.period,
+            "编制": author.name if author else "—",
+            "日期": _now().date().isoformat(),
+        }
+        fields = {header[k]: v for k, v in values.items() if k in header}
+    else:
+        anchor = db.get(RuleAnchor, ws.rule_anchor_id)
+        fields = {
+            "B3": author.name if author else "—",
+            "B4": _project_no(db, ws),
+            "B5": ws.code,
+            "B6": f"{anchor.standard_no} {anchor.clause}" if anchor else "—",
+            "B8": "AI 未能生成，待人工取数（数据区）",
+            "B9": _materiality_note(db, ws.project_id),  # R8 引用：编制错报评估的基准
+        }
     object_key = f"worksheets/{ws.id}/{row.run_no}.xlsx"
     try:
         return ws_render.render_ai_draft(
@@ -521,6 +542,58 @@ def final_approve(db: Session, operator: User, worksheet_id: str) -> Worksheet:
         before={"status": "复核通过"}, after={"status": "终审通过"},
     )
     return ws
+
+
+REVIEW_SHEET_STATUSES = ("复核通过", "终审通过")
+
+
+def export_review_sheet(db: Session, operator: User, worksheet_id: str) -> tuple[str, str, str]:
+    """复核核对表出稿（FR-05-02，worksheet.review_sign ≥ OPERATE）：6700 模板保真写回。
+
+    前置：底稿已复核通过（复核通过/终审通过）。仅填「业务复核核对表-准则稿」表头
+    要素（被审计单位/编制=底稿编制人/复核=操作人/日期）；意见栏与三级复核勾选留人工。
+    WS-1020 指纹/登记类拒绝（ValueError 子类）向上 → 路由 422，落盘对象已删，天然回滚。
+    """
+    assert_allowed(operator.global_role, "worksheet.review_sign", Level.OPERATE)
+    ws = _get_ws(db, worksheet_id)
+    if ws.status not in REVIEW_SHEET_STATUSES:
+        raise ValueError(f"{CODE_PARAM} 底稿未复核通过（当前「{ws.status}」），核对表无出稿依据")
+    project = db.get(AuditProject, ws.project_id)
+    client = db.get(Client, project.client_id)
+    if client is None:
+        raise ValueError(f"{CODE_NOT_FOUND} 项目客户缺失")
+
+    today = date.today().isoformat()
+    preparer = "编制人"
+    latest = _latest_version(db, worksheet_id)
+    if latest is not None and latest.prepared_by:
+        creator = db.get(User, latest.prepared_by)
+        preparer = creator.name if creator is not None else preparer
+    reviewer = operator.name  # 出稿人兜底；取最近一轮复核记录的复核人（FR-05-02）
+    last_review = db.scalar(
+        select(WorksheetReview)
+        .where(WorksheetReview.worksheet_id == worksheet_id)
+        .order_by(WorksheetReview.round_no.desc())
+    )
+    if last_review is not None:
+        reviewer_row = db.get(User, last_review.reviewer_id)
+        reviewer = reviewer_row.name if reviewer_row is not None else reviewer
+    fields = review_render.build_review_sheet_fields(
+        auditee=client.name, preparer=preparer, reviewer=reviewer,
+        prepared_at=today, reviewed_at=today,
+    )
+    template_key = domain_template_key("review", project.business_type)
+    object_key = f"worksheets/{worksheet_id}/review-sheet.xlsx"
+    review_render.render_review_sheet(
+        fields, template_key,
+        storage=get_storage(), object_key=object_key,
+    )
+    append_trail(
+        db, tenant_id=operator.tenant_id, entity_type="worksheet", entity_id=ws.id,
+        action="复核核对表出稿", operator=operator.name,
+        after={"template_key": template_key, "file_key": object_key},
+    )
+    return template_key, object_key, ws.status
 
 
 def update_cross_refs(

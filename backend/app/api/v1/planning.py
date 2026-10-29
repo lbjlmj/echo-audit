@@ -13,6 +13,7 @@ from ...models.user import User
 from ...schemas.planning import (
     MaterialityIn,
     MaterialityOut,
+    PlanExportOut,
     ProgramIn,
     ProgramOut,
     RiskAiOut,
@@ -155,3 +156,17 @@ def generate_programs(
     except (planning.NotFound, planning.Locked, planning.ProjectFrozen, ValueError) as exc:
         raise _http_for(exc) from exc
     return [ProgramOut.model_validate(r) for r in rows]
+
+
+@router.post("/{project_id}/plan-export", response_model=PlanExportOut, status_code=201,
+             summary="审计计划出稿（FR-02-01：2600 模板保真写回；2610 重要性表头跨表公式联动；PL-1010 指纹拒绝→422）")
+def export_plan(
+    project_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> PlanExportOut:
+    try:
+        template_key, file_key = planning.export_plan(db, user, project_id)
+    except (planning.NotFound, planning.Locked, planning.ProjectFrozen, ValueError) as exc:
+        raise _http_for(exc) from exc
+    return PlanExportOut(project_id=project_id, template_key=template_key, file_key=file_key)

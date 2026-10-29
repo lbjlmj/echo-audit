@@ -83,3 +83,11 @@ class ProgramOut(BaseModel):
     package_type: str
     min_standard_note: str | None = None
     exec_status: str
+
+
+class PlanExportOut(BaseModel):
+    """审计计划出稿结果（FR-02-01；2600 保真写回产物经存储下载）。"""
+
+    project_id: str
+    template_key: str
+    file_key: str

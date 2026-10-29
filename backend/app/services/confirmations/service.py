@@ -19,12 +19,15 @@ from sqlalchemy.orm import Session
 
 from ...core.audit_middleware import append_trail
 from ...core.permissions import Level, assert_allowed
+from ...core.storage import get_storage
 from ...engine.confirmation_rules import decide_overdue_status
+from ...engine.industry_matrix import domain_template_key
 from ...engine.state_machines import CONFIRMATION, IllegalTransition
 from ...models.audit import AuditTrail
 from ...models.confirmation import Confirmation
 from ...models.project import AuditProject
 from ...models.user import User
+from . import letter
 
 # CF-1xxx 函证域错误码
 CODE_TRANSITION = "CF-1001"
@@ -220,6 +223,42 @@ def close_confirmation(db: Session, operator: User, confirmation_id: str) -> Con
         before={"status": row.status}, after={"status": "闭环"},
     )
     return row
+
+
+def render_confirmation_letter(
+    db: Session, operator: User, confirmation_id: str, *, template_key: str | None = None
+) -> tuple[Confirmation, str, str, str]:
+    """函证件出稿（FR-04-01，worksheet.edit ≥ OPERATE）：询证函模板保真写回（硬约束 8）。
+
+    默认模板键按台账类型映射出稿域（银行→bank、往来→ar）并按项目业务类型准则
+    路由（engine 单点：银行函监管统一版式两准则共用；往来函小企业版独立键）；
+    显式入参 template_key 优先。只填致/函证编号白名单格，函证金额绝不出站
+    （§4.2.7）。出稿不改八状态——函证件生成后仍按发出流程走。
+    CF-1010 指纹/登记类拒绝（ValueError 子类）向上 → 路由 422，落盘对象已删，
+    库字段未写，天然回滚。返回 (台账行, 对象键, 模板键, 函证编号)。
+    """
+    assert_allowed(operator.global_role, "worksheet.edit", Level.OPERATE)
+    row = _get_cf(db, confirmation_id)
+    project = db.get(AuditProject, row.project_id)
+    if project is None:
+        raise NotFound(CODE_NOT_FOUND)
+    _assert_writable(project)
+    domain = letter.TYPE_DOMAINS.get(row.type)
+    if domain is None:
+        raise ValueError(f"{CODE_PARAM} 台账类型无默认模板：{row.type}")
+    key = (template_key or "").strip() or domain_template_key(domain, project.business_type)
+
+    letter_no = f"CF-{row.id[:8].upper()}"
+    fields = letter.build_letter_fields(key, counterparty=row.counterparty, letter_no=letter_no)
+    object_key = f"confirmations/{row.project_id}/{row.id}/letter.xlsx"
+    letter.render_letter(fields, key, storage=get_storage(), object_key=object_key)
+
+    append_trail(
+        db, tenant_id=operator.tenant_id, entity_type="confirmation", entity_id=row.id,
+        action="函证件出稿", operator=operator.name,
+        after={"template_key": key, "letter_no": letter_no, "file_key": object_key},
+    )
+    return row, object_key, key, letter_no
 
 
 def run_overdue_scan(db: Session, *, today: date) -> dict:
