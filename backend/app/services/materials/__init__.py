@@ -1,0 +1,36 @@
+"""资料域（FR-01-05 资料清单前置 / FR-03-01 缺口 / §15-6 字段映射）服务出口。"""
+from .service import (
+    Locked,
+    NotFound,
+    ProjectFrozen,
+    batch_arrive_checklist,
+    classify_materials,
+    confirm_classification,
+    create_mapping,
+    import_voucher_lines,
+    list_gaps,
+    list_mappings,
+    list_materials,
+    mark_arrived,
+    parse_material,
+    project_checklist,
+    register_material,
+)
+
+__all__ = [
+    "Locked",
+    "NotFound",
+    "ProjectFrozen",
+    "batch_arrive_checklist",
+    "classify_materials",
+    "confirm_classification",
+    "create_mapping",
+    "import_voucher_lines",
+    "list_gaps",
+    "list_mappings",
+    "list_materials",
+    "mark_arrived",
+    "parse_material",
+    "project_checklist",
+    "register_material",
+]
