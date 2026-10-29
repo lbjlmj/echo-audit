@@ -1,0 +1,622 @@
+{
+ "standard": "小企业会计准则",
+ "version": "sme2025",
+ "groups": [
+  {
+   "name": "业务完成阶段工作底稿",
+   "stage": 6,
+   "subgroups": [],
+   "items": [
+    {
+     "code": "Z001",
+     "title": "正式审计报告",
+     "stage": 6
+    },
+    {
+     "code": "Z002",
+     "title": "审计报告签发稿",
+     "stage": 6
+    },
+    {
+     "code": "Z003",
+     "title": "未审计财务报表",
+     "stage": 6
+    },
+    {
+     "code": "6000",
+     "title": "业务完成阶段审计工作程序表",
+     "stage": 6
+    },
+    {
+     "code": "6100",
+     "title": "错报累积和评价表",
+     "stage": 6
+    },
+    {
+     "code": "6110",
+     "title": "已更正错报汇总表（不包括列报和披露错报）",
+     "stage": 6
+    },
+    {
+     "code": "6120",
+     "title": "已更正的列报和披露错报汇总表",
+     "stage": 6
+    },
+    {
+     "code": "6130",
+     "title": "未更正错报汇总表（不包括列报和披露错报）",
+     "stage": 6
+    },
+    {
+     "code": "6140",
+     "title": "未更正的列报和披露错报汇总表",
+     "stage": 6
+    },
+    {
+     "code": "6150",
+     "title": "评价识别出的错报",
+     "stage": 6
+    },
+    {
+     "code": "6210",
+     "title": "试算平衡表--资产负债表",
+     "stage": 6
+    },
+    {
+     "code": "6220",
+     "title": "试算平衡表--利润表",
+     "stage": 6
+    },
+    {
+     "code": "6230",
+     "title": "试算平衡表--现金流量表",
+     "stage": 6
+    },
+    {
+     "code": "6300",
+     "title": "与治理层、管理层的沟通记录汇总表",
+     "stage": 6
+    },
+    {
+     "code": "6310",
+     "title": "沟通的会议纪要（参考格式）",
+     "stage": 6
+    },
+    {
+     "code": "6320",
+     "title": "与治理层的沟通函（参考格式）",
+     "stage": 6
+    },
+    {
+     "code": "6400",
+     "title": "管理层声明书",
+     "stage": 6
+    },
+    {
+     "code": "6500",
+     "title": "审计工作总结",
+     "stage": 6
+    },
+    {
+     "code": "6600",
+     "title": "审计工作完成情况核对表",
+     "stage": 6
+    },
+    {
+     "code": "6700",
+     "title": "复核工作底稿",
+     "stage": 6
+    }
+   ]
+  },
+  {
+   "name": "初步业务活动底稿",
+   "stage": 1,
+   "subgroups": [],
+   "items": [
+    {
+     "code": "1000",
+     "title": "初步业务活动程序表",
+     "stage": 1
+    },
+    {
+     "code": "1001",
+     "title": "与管理层的沟通",
+     "stage": 1
+    },
+    {
+     "code": "1002",
+     "title": "沟通函",
+     "stage": 1
+    },
+    {
+     "code": "1003",
+     "title": "与前任注册会计师的沟通函",
+     "stage": 1
+    },
+    {
+     "code": "1004",
+     "title": "前任注册会计师对后任注册会计师关于沟通函的复函",
+     "stage": 1
+    },
+    {
+     "code": "1100",
+     "title": "业务承接保持评价表",
+     "stage": 1
+    },
+    {
+     "code": "1200",
+     "title": "审计业务约定书",
+     "stage": 1
+    },
+    {
+     "code": "1300",
+     "title": "客户提供资料清单",
+     "stage": 1
+    },
+    {
+     "code": "1400",
+     "title": "审计标识",
+     "stage": 1
+    }
+   ]
+  },
+  {
+   "name": "风险评估活动底稿",
+   "stage": 2,
+   "subgroups": [],
+   "items": [
+    {
+     "code": "2100",
+     "title": "了解被审计单位及其环境（不包括内部控制）",
+     "stage": 2
+    },
+    {
+     "code": "2200",
+     "title": "了解被审计单位内部控制",
+     "stage": 2
+    },
+    {
+     "code": "2300",
+     "title": "舞弊风险评估与应对",
+     "stage": 2
+    },
+    {
+     "code": "2400",
+     "title": "项目组讨论纪要--风险评估",
+     "stage": 2
+    },
+    {
+     "code": "2500",
+     "title": "风险评估结果和内部控制缺陷汇总",
+     "stage": 2
+    },
+    {
+     "code": "2600",
+     "title": "审计计划",
+     "stage": 2
+    }
+   ]
+  },
+  {
+   "name": "进一步审计程序工作底稿",
+   "stage": null,
+   "subgroups": [
+    {
+     "name": "（一）内部控制测试底稿",
+     "stage": 3,
+     "items": [
+      {
+       "code": "3000",
+       "title": "控制测试结果汇总表",
+       "stage": 3
+      },
+      {
+       "code": "3100",
+       "title": "控制运行有效性通用测试表",
+       "stage": 3
+      },
+      {
+       "code": "3200",
+       "title": "重要交易、账户余额和披露的认定层次重大错报风险评估结果汇总表",
+       "stage": 3
+      }
+     ]
+    }
+   ],
+   "items": []
+  },
+  {
+   "name": "（二）实质性程序工作底稿",
+   "stage": 4,
+   "subgroups": [
+    {
+     "name": "1.资产类",
+     "stage": 4,
+     "items": [
+      {
+       "code": "4101",
+       "title": "货币资金",
+       "stage": 4,
+       "template_key": "templates/sme/4101.xlsx"
+      },
+      {
+       "code": "4102",
+       "title": "短期投资",
+       "stage": 4,
+       "template_key": "templates/sme/4102.xlsx"
+      },
+      {
+       "code": "4103",
+       "title": "应收票据",
+       "stage": 4,
+       "template_key": "templates/sme/4103.xlsx"
+      },
+      {
+       "code": "4104",
+       "title": "应收账款",
+       "stage": 4,
+       "template_key": "templates/sme/4104.xlsx"
+      },
+      {
+       "code": "4105",
+       "title": "预付账款",
+       "stage": 4,
+       "template_key": "templates/sme/4105.xlsx"
+      },
+      {
+       "code": "4106",
+       "title": "应收股利",
+       "stage": 4,
+       "template_key": "templates/sme/4106.xlsx"
+      },
+      {
+       "code": "4107",
+       "title": "应收利息",
+       "stage": 4,
+       "template_key": "templates/sme/4107.xlsx"
+      },
+      {
+       "code": "4108",
+       "title": "其他应收款",
+       "stage": 4,
+       "template_key": "templates/sme/4108.xlsx"
+      },
+      {
+       "code": "4109",
+       "title": "存货",
+       "stage": 4,
+       "template_key": "templates/sme/4109.xlsx"
+      },
+      {
+       "code": "4110",
+       "title": "其他流动资产",
+       "stage": 4,
+       "template_key": "templates/sme/4110.xlsx"
+      },
+      {
+       "code": "4111",
+       "title": "长期债权投资",
+       "stage": 4,
+       "template_key": "templates/sme/4111.xlsx"
+      },
+      {
+       "code": "4112",
+       "title": "长期股权投资",
+       "stage": 4,
+       "template_key": "templates/sme/4112.xlsx"
+      },
+      {
+       "code": "4113",
+       "title": "固定资产",
+       "stage": 4,
+       "template_key": "templates/sme/4113.xlsx"
+      },
+      {
+       "code": "4114",
+       "title": "在建工程",
+       "stage": 4,
+       "template_key": "templates/sme/4114.xlsx"
+      },
+      {
+       "code": "4115",
+       "title": "工程物资",
+       "stage": 4,
+       "template_key": "templates/sme/4115.xlsx"
+      },
+      {
+       "code": "4116",
+       "title": "固定资产清理",
+       "stage": 4,
+       "template_key": "templates/sme/4116.xlsx"
+      },
+      {
+       "code": "4117",
+       "title": "生产性生物资产",
+       "stage": 4,
+       "template_key": "templates/sme/4117.xlsx"
+      },
+      {
+       "code": "4118",
+       "title": "无形资产",
+       "stage": 4,
+       "template_key": "templates/sme/4118.xlsx"
+      },
+      {
+       "code": "4119",
+       "title": "开发支出",
+       "stage": 4,
+       "template_key": "templates/sme/4119.xlsx"
+      },
+      {
+       "code": "4120",
+       "title": "长期待摊费用",
+       "stage": 4,
+       "template_key": "templates/sme/4120.xlsx"
+      },
+      {
+       "code": "4121",
+       "title": "其他非流动资产",
+       "stage": 4,
+       "template_key": "templates/sme/4121.xlsx"
+      }
+     ]
+    },
+    {
+     "name": "2.负债类",
+     "stage": 4,
+     "items": [
+      {
+       "code": "4201",
+       "title": "短期借款",
+       "stage": 4,
+       "template_key": "templates/sme/4201.xlsx"
+      },
+      {
+       "code": "4202",
+       "title": "应付票据",
+       "stage": 4,
+       "template_key": "templates/sme/4202.xlsx"
+      },
+      {
+       "code": "4203",
+       "title": "应付账款",
+       "stage": 4,
+       "template_key": "templates/sme/4203.xlsx"
+      },
+      {
+       "code": "4204",
+       "title": "预收账款",
+       "stage": 4,
+       "template_key": "templates/sme/4204.xlsx"
+      },
+      {
+       "code": "4205",
+       "title": "应付职工薪酬",
+       "stage": 4,
+       "template_key": "templates/sme/4205.xlsx"
+      },
+      {
+       "code": "4206",
+       "title": "应交税费",
+       "stage": 4,
+       "template_key": "templates/sme/4206.xlsx"
+      },
+      {
+       "code": "4207",
+       "title": "应付利息",
+       "stage": 4,
+       "template_key": "templates/sme/4207.xlsx"
+      },
+      {
+       "code": "4208",
+       "title": "应付利润",
+       "stage": 4,
+       "template_key": "templates/sme/4208.xlsx"
+      },
+      {
+       "code": "4209",
+       "title": "其他应付款",
+       "stage": 4,
+       "template_key": "templates/sme/4209.xlsx"
+      },
+      {
+       "code": "4210",
+       "title": "其他流动负债",
+       "stage": 4,
+       "template_key": "templates/sme/4210.xlsx"
+      },
+      {
+       "code": "4211",
+       "title": "长期借款",
+       "stage": 4,
+       "template_key": "templates/sme/4211.xlsx"
+      },
+      {
+       "code": "4212",
+       "title": "长期应付款",
+       "stage": 4,
+       "template_key": "templates/sme/4212.xlsx"
+      },
+      {
+       "code": "4213",
+       "title": "递延收益",
+       "stage": 4,
+       "template_key": "templates/sme/4213.xlsx"
+      },
+      {
+       "code": "4214",
+       "title": "其他非流动负债",
+       "stage": 4,
+       "template_key": "templates/sme/4214.xlsx"
+      }
+     ]
+    },
+    {
+     "name": "3.所有者权益类",
+     "stage": 4,
+     "items": [
+      {
+       "code": "4301",
+       "title": "实收资本（或股本）",
+       "stage": 4,
+       "template_key": "templates/sme/4301.xlsx"
+      },
+      {
+       "code": "4302",
+       "title": "资本公积",
+       "stage": 4,
+       "template_key": "templates/sme/4302.xlsx"
+      },
+      {
+       "code": "4303",
+       "title": "盈余公积",
+       "stage": 4,
+       "template_key": "templates/sme/4303.xlsx"
+      },
+      {
+       "code": "4304",
+       "title": "未分配利润",
+       "stage": 4,
+       "template_key": "templates/sme/4304.xlsx"
+      }
+     ]
+    },
+    {
+     "name": "4.损益类",
+     "stage": 4,
+     "items": [
+      {
+       "code": "4401",
+       "title": "营业收入",
+       "stage": 4,
+       "template_key": "templates/sme/4401.xlsx"
+      },
+      {
+       "code": "4402",
+       "title": "营业成本",
+       "stage": 4,
+       "template_key": "templates/sme/4402.xlsx"
+      },
+      {
+       "code": "4403",
+       "title": "税金及附加",
+       "stage": 4,
+       "template_key": "templates/sme/4403.xlsx"
+      },
+      {
+       "code": "4404",
+       "title": "销售费用",
+       "stage": 4,
+       "template_key": "templates/sme/4404.xlsx"
+      },
+      {
+       "code": "4405",
+       "title": "管理费用",
+       "stage": 4,
+       "template_key": "templates/sme/4405.xlsx"
+      },
+      {
+       "code": "4406",
+       "title": "财务费用",
+       "stage": 4,
+       "template_key": "templates/sme/4406.xlsx"
+      },
+      {
+       "code": "4407",
+       "title": "投资收益",
+       "stage": 4,
+       "template_key": "templates/sme/4407.xlsx"
+      },
+      {
+       "code": "4408",
+       "title": "营业外收入",
+       "stage": 4,
+       "template_key": "templates/sme/4408.xlsx"
+      },
+      {
+       "code": "4409",
+       "title": "营业外支出",
+       "stage": 4,
+       "template_key": "templates/sme/4409.xlsx"
+      },
+      {
+       "code": "4410",
+       "title": "所得税费用",
+       "stage": 4,
+       "template_key": "templates/sme/4410.xlsx"
+      }
+     ]
+    }
+   ],
+   "items": []
+  },
+  {
+   "name": "其他项目",
+   "stage": 5,
+   "subgroups": [],
+   "items": [
+    {
+     "code": "5010",
+     "title": "对法律法规的考虑",
+     "stage": 5
+    },
+    {
+     "code": "5020",
+     "title": "接受委托后与前任注册会计师的沟通",
+     "stage": 5
+    },
+    {
+     "code": "5030",
+     "title": "关联方及关联方交易",
+     "stage": 5
+    },
+    {
+     "code": "5040",
+     "title": "持续经营",
+     "stage": 5
+    },
+    {
+     "code": "5050",
+     "title": "首次接受委托时对期初余额的审计",
+     "stage": 5
+    },
+    {
+     "code": "5060",
+     "title": "会计估计(包括公允价值会计估计)和相关披露",
+     "stage": 5
+    },
+    {
+     "code": "5070",
+     "title": "对应数据",
+     "stage": 5
+    },
+    {
+     "code": "5080",
+     "title": "诉讼和索赔",
+     "stage": 5
+    },
+    {
+     "code": "5090",
+     "title": "期后事项",
+     "stage": 5
+    },
+    {
+     "code": "5100",
+     "title": "利用注册会计师的专家的工作",
+     "stage": 5
+    },
+    {
+     "code": "5110",
+     "title": "现金流量表",
+     "stage": 5
+    },
+    {
+     "code": "5120",
+     "title": "利用内部审计人员的工作",
+     "stage": 5
+    }
+   ]
+  }
+ ]
+}

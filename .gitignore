@@ -5,9 +5,14 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# 本地运行产物（dev 库 / 对象存储，禁止入库）
+# 本地运行产物（dev 库 / 对象存储，禁止入库；两个准则科目目录种子随版本发布）
 backend/echo_dev.db
-backend/data/
+backend/data/*
+!backend/data/worksheet_catalog.json
+!backend/data/worksheet_catalog_sme.json
+
+# 模板源材料暂存（zip 解压区；正式模板随版本发布于 templates/ 各域目录）
+backend/templates/_staging/
 
 # Node
 node_modules/

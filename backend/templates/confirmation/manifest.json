@@ -1,0 +1,189 @@
+{
+  "bank/v2025.xlsx": {
+    "label": "银行询证函（财政银行业监管标准版式）",
+    "version": "v2025",
+    "file": "bank_v2025.xlsx",
+    "domain": "confirmation",
+    "fill_cells": {
+      "银行询证函": [
+        "L3",
+        "B4",
+        "L4"
+      ]
+    },
+    "header_map": {
+      "银行询证函": {
+        "索引号": "L3",
+        "编号": "L4"
+      }
+    },
+    "structure_fingerprint": {
+      "银行询证函": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  },
+  "ar/v2025.xlsx": {
+    "label": "往来账项询证函（积极式+消极式）",
+    "version": "v2025",
+    "file": "ar_v2025.xlsx",
+    "domain": "confirmation",
+    "fill_cells": {
+      "往来账项询证函（积极式询证函）": [
+        "F3",
+        "B4",
+        "F4"
+      ],
+      "往来账项询证函（消极式询证函）": [
+        "F3",
+        "B4",
+        "F4"
+      ]
+    },
+    "header_map": {
+      "往来账项询证函（积极式询证函）": {
+        "索引号": "F3",
+        "致": "B4",
+        "编号": "F4"
+      },
+      "往来账项询证函（消极式询证函）": {
+        "索引号": "F3",
+        "致": "B4",
+        "编号": "F4"
+      }
+    },
+    "structure_fingerprint": {
+      "往来账项询证函（积极式询证函）": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d",
+      "往来账项询证函（消极式询证函）": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  },
+  "control/v2025.xlsx": {
+    "label": "函证程序控制措施表",
+    "version": "v2025",
+    "file": "control_v2025.xlsx",
+    "domain": "confirmation",
+    "fill_cells": {
+      "函证程序控制措施表": [
+        "B2",
+        "H2",
+        "B3",
+        "H3",
+        "B4",
+        "H4",
+        "B5",
+        "H5",
+        "K7"
+      ]
+    },
+    "header_map": {
+      "函证程序控制措施表": {
+        "被审计单位": "B2",
+        "索引号": "H2",
+        "项目": "B3",
+        "截止日": "H3",
+        "编制": "B4",
+        "复核": "H4",
+        "日期": "B5"
+      }
+    },
+    "structure_fingerprint": {
+      "函证程序控制措施表": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  },
+  "send_list/v2025.xlsx": {
+    "label": "发函清单",
+    "version": "v2025",
+    "file": "send_list_v2025.xlsx",
+    "domain": "confirmation",
+    "fill_cells": {
+      "发函清单": [
+        "B2",
+        "K2",
+        "B3",
+        "K3",
+        "B4",
+        "K4",
+        "B5",
+        "K5"
+      ]
+    },
+    "header_map": {
+      "发函清单": {
+        "被审计单位": "B2",
+        "索引号": "K2",
+        "项目": "B3",
+        "截止日": "K3",
+        "编制": "B4",
+        "复核": "K4",
+        "日期": "B5"
+      }
+    },
+    "structure_fingerprint": {
+      "发函清单": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  },
+  "reply_check/v2025.xlsx": {
+    "label": "回函核对记录",
+    "version": "v2025",
+    "file": "reply_check_v2025.xlsx",
+    "domain": "confirmation",
+    "fill_cells": {
+      "回函核对记录": [
+        "C3",
+        "L3",
+        "C4",
+        "L4",
+        "C5",
+        "L5",
+        "C6",
+        "L6"
+      ]
+    },
+    "header_map": {
+      "回函核对记录": {
+        "被审计单位": "C3",
+        "索引号": "L3",
+        "项目": "C4",
+        "截止日": "L4",
+        "编制": "C5",
+        "复核": "L5",
+        "日期": "C6"
+      }
+    },
+    "structure_fingerprint": {
+      "回函核对记录": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  },
+  "ar-sme/v2025.xlsx": {
+    "label": "往来账项询证函（小企业会计准则版）",
+    "version": "sme2025",
+    "file": "ar_sme_v2025.xlsx",
+    "domain": "confirmation",
+    "fill_cells": {
+      "往来账项询证函（积极式询证函）": [
+        "F3",
+        "B4",
+        "F4"
+      ],
+      "往来账项询证函（消极式询证函）": [
+        "F3",
+        "B4",
+        "F4"
+      ]
+    },
+    "header_map": {
+      "往来账项询证函（积极式询证函）": {
+        "索引号": "F3",
+        "致": "B4",
+        "编号": "F4"
+      },
+      "往来账项询证函（消极式询证函）": {
+        "索引号": "F3",
+        "致": "B4",
+        "编号": "F4"
+      }
+    },
+    "structure_fingerprint": {
+      "往来账项询证函（积极式询证函）": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d",
+      "往来账项询证函（消极式询证函）": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  }
+}

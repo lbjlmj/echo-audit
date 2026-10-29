@@ -1,0 +1,62 @@
+{
+  "plan/v2025.xlsx": {
+    "label": "审计计划（总体策略+具体计划+重要性+计划矩阵）",
+    "version": "v2025",
+    "file": "plan_v2025.xlsx",
+    "domain": "planning",
+    "fill_cells": {
+      "2600审计计划": [
+        "B2",
+        "B4",
+        "G4",
+        "B5",
+        "G5",
+        "J94"
+      ]
+    },
+    "header_map": {
+      "2600审计计划": {
+        "被审计单位": "B2",
+        "编制": "B4",
+        "复核": "G4",
+        "日期": "B5",
+        "索引号": "J94"
+      }
+    },
+    "structure_fingerprint": {
+      "2600审计计划": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d",
+      "2610重要性": "7cee84ccfc9f004531618cf69c8662b6936fed9b5a1ab9d553ce8faef80e9d40",
+      "2620计划矩阵": "16c2cb2217698bc809fc8ecd1b1d90498b6ba98aeb6303a10f1e3f985ef4a40d"
+    }
+  },
+  "plan-sme/v2025.xlsx": {
+    "label": "审计计划（小企业会计准则版）",
+    "version": "sme2025",
+    "file": "plan_sme_v2025.xlsx",
+    "domain": "planning",
+    "fill_cells": {
+      "2600审计计划": [
+        "B2",
+        "B4",
+        "G4",
+        "B5",
+        "G5",
+        "J94"
+      ]
+    },
+    "header_map": {
+      "2600审计计划": {
+        "被审计单位": "B2",
+        "编制": "B4",
+        "复核": "G4",
+        "日期": "B5",
+        "索引号": "J94"
+      }
+    },
+    "structure_fingerprint": {
+      "2600审计计划": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d",
+      "2610重要性": "7cee84ccfc9f004531618cf69c8662b6936fed9b5a1ab9d553ce8faef80e9d40",
+      "2620计划矩阵": "16c2cb2217698bc809fc8ecd1b1d90498b6ba98aeb6303a10f1e3f985ef4a40d"
+    }
+  }
+}

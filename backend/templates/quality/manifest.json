@@ -1,0 +1,60 @@
+{
+  "checklist/v2025.xlsx": {
+    "label": "审计工作完成情况核对表（质控检查报告载体）",
+    "version": "v2025",
+    "file": "checklist_v2025.xlsx",
+    "domain": "quality",
+    "fill_cells": {
+      "审计工作完成情况核对表6600": [
+        "C2",
+        "C4",
+        "H4",
+        "C5",
+        "H5",
+        "J8"
+      ]
+    },
+    "header_map": {
+      "审计工作完成情况核对表6600": {
+        "被审计单位": "C2",
+        "编制": "C4",
+        "复核": "H4",
+        "日期": "C5",
+        "索引号": "J8"
+      }
+    },
+    "structure_fingerprint": {
+      "dxnsjtempsheet": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d",
+      "审计工作完成情况核对表6600": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  },
+  "checklist-sme/v2025.xlsx": {
+    "label": "审计工作完成情况核对表（小企业会计准则版）",
+    "version": "sme2025",
+    "file": "checklist_sme_v2025.xlsx",
+    "domain": "quality",
+    "fill_cells": {
+      "审计工作完成情况核对表6600": [
+        "C2",
+        "C4",
+        "H4",
+        "C5",
+        "H5",
+        "J8"
+      ]
+    },
+    "header_map": {
+      "审计工作完成情况核对表6600": {
+        "被审计单位": "C2",
+        "编制": "C4",
+        "复核": "H4",
+        "日期": "C5",
+        "索引号": "J8"
+      }
+    },
+    "structure_fingerprint": {
+      "dxnsjtempsheet": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d",
+      "审计工作完成情况核对表6600": "3bb8ef06c22e21f3c91bc00b20fe55b9796012c94682d9ed113a6fbd176d0f5d"
+    }
+  }
+}
