@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# 本地运行产物（dev 库 / 对象存储，禁止入库）
+backend/echo_dev.db
+backend/data/
+
+# Node
+node_modules/
+dist/
+*.local
+*.tsbuildinfo
+
+# 环境与密钥（禁止提交：AGENTS.md 提交规范）
+.env
+*.key
+*.pem
+
+# 部署产物
+deploy/offline-installer/*.tar
+*.dump
+
+# IDE / 工具产物
+.idea/
+.vscode/
+.screenshots/
