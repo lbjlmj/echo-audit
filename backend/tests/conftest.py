@@ -33,6 +33,8 @@ def db(engine):
 @pytest.fixture(autouse=True)
 def isolated_storage(tmp_path, monkeypatch):
     """对象存储隔离：出稿/写回产物写入本用例临时目录，不污染 dev 数据目录。"""
+    import app.services.confirmations.service as confirmations_service
+    import app.services.planning.service as planning_service
     import app.services.quality.service as quality_service
     import app.services.reports.service as report_service
     import app.services.worksheets.service as worksheet_service
@@ -42,6 +44,8 @@ def isolated_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(report_service, "get_storage", fake)
     monkeypatch.setattr(worksheet_service, "get_storage", fake)
     monkeypatch.setattr(quality_service, "get_storage", fake)
+    monkeypatch.setattr(confirmations_service, "get_storage", fake)
+    monkeypatch.setattr(planning_service, "get_storage", fake)
     yield tmp_path / "objects"
 
 
