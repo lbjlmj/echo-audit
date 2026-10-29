@@ -1,0 +1,93 @@
+# Echo 审计作业平台 — 七容器部署（TECH_DESIGN §2.1/§4.7）
+# web / api / worker / beat / pg / redis / minio
+# 全离线安装：deploy/offline-installer（镜像 tar + 初始化向导，目标 2 小时/所）
+
+services:
+  pg:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: ${ECHO_PG_PASSWORD:-echo}
+      POSTGRES_DB: echo_audit
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo -d echo_audit"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${ECHO_MINIO_USER:-echo}
+      MINIO_ROOT_PASSWORD: ${ECHO_MINIO_PASSWORD:-echo12345}
+    volumes:
+      - minio_data:/data
+    # SSE 加密与 WORM 版本锁在初始化脚本配置（§4.2.6、§4.3.4）
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/api.Dockerfile
+    environment: &backend_env
+      ECHO_DATABASE_URL: postgresql+psycopg://echo:${ECHO_PG_PASSWORD:-echo}@pg:5432/echo_audit
+      ECHO_REDIS_URL: redis://redis:6379/0
+      ECHO_MINIO_ENDPOINT: minio:9000
+      ECHO_MINIO_ACCESS_KEY: ${ECHO_MINIO_USER:-echo}
+      ECHO_MINIO_SECRET_KEY: ${ECHO_MINIO_PASSWORD:-echo12345}
+      ECHO_JWT_SECRET: ${ECHO_JWT_SECRET:-change-me-in-production}
+      ECHO_LLM_ENABLED: "false"        # 大模型通道默认关闭（§15-15）
+      ECHO_SF_EXPRESS_ENABLED: "false" # 顺丰通道默认关闭（§15-9）
+      ECHO_EGRESS_HOSTS: ""            # 出站白名单默认全关（§4.2.7）
+    depends_on:
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  worker:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/api.Dockerfile
+    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "-l", "info"]
+    environment: *backend_env
+    depends_on:
+      - api
+
+  beat:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/api.Dockerfile
+    command: ["celery", "-A", "app.workers.celery_app.celery_app", "beat", "-l", "info"]
+    environment: *backend_env
+    depends_on:
+      - worker
+
+  web:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/web.Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pg_data:
+  redis_data:
+  minio_data:
