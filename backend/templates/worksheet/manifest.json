@@ -1,0 +1,20 @@
+{
+  "templates/trade/v2025.xlsx": {
+    "label": "商贸行业底稿模板（货币资金）",
+    "version": "v2025",
+    "file": "trade/v2025.xlsx",
+    "fill_cells": {
+      "底稿": [
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B8",
+        "B9"
+      ]
+    },
+    "structure_fingerprint": {
+      "底稿": "73261ced3861b7ffc6204dd8c52fab212f810e0636f1a9a921e0ca1dd9572a9c"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "report/general/v2025": {
+    "label": "通用年报审计报告",
+    "version": "v2025",
+    "file": "general_v2025.xlsx",
+    "fill_cells": {
+      "审计报告": [
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B10",
+        "B12"
+      ],
+      "签发信息": [
+        "B3",
+        "B4"
+      ]
+    },
+    "structure_fingerprint": {
+      "审计报告": "8ca04d7dc61993aee716b2d617ba93dc14cb1468cf3a0f73525cfab561f0994a",
+      "签发信息": "201e23411eaa32aa4b98a346380b4e7c7f1b69769b3db65460b90ec289505af2"
+    }
+  }
+}
