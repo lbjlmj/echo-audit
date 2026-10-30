@@ -17,13 +17,14 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.1",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
+    "@vitejs/plugin-vue": "^5.2.1",
     "eslint": "^9.17.0",
     "eslint-plugin-vue": "^9.32.0",
     "prettier": "^3.4.2",
     "typescript": "~5.7.2",
+    "typescript-eslint": "^8.72.1",
     "vite": "^6.0.7",
     "vue-tsc": "^2.2.0"
   }

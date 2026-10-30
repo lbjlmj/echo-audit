@@ -16,9 +16,10 @@ import { useSessionStore } from '@/stores/session'
 import type {
   AiDraftOut,
   AnchorOut,
+  CatalogGroupOut,
+  CatalogOut,
   CrossRefsOut,
   ProjectOptionOut,
-  TemplateOptionOut,
   WorksheetOut,
 } from '@/api/types'
 
@@ -29,7 +30,6 @@ const projects = ref<ProjectOptionOut[]>([])
 const projectId = ref('')
 const worksheets = ref<WorksheetOut[]>([])
 const anchors = ref<AnchorOut[]>([])
-const templates = ref<TemplateOptionOut[]>([])
 const current = ref<WorksheetOut | null>(null)
 const loading = ref(false)
 
@@ -58,19 +58,78 @@ async function loadWorksheets() {
 }
 
 // ---------------------------------------------------------------------------
-// 创建底稿（FR-03-03：准则锚点强制带出，红线 2）
+// 创建底稿（FR-03-03：准则锚点强制带出，红线 2）——科目树选模板
 // ---------------------------------------------------------------------------
 const createVisible = ref(false)
-const createForm = reactive({ title: '', template_id: '', rule_anchor_id: '', is_important: false })
+const createForm = reactive({ title: '', template_key: '', rule_anchor_id: '', is_important: false })
+
+// 科目目录树（数据即代码种子）：两准则 tab + 挂载模板科目可选
+const catalogs = ref<CatalogOut[]>([])
+const catalogStandard = ref('企业会计准则')
+const catalogLoading = ref(false)
+const catalogError = ref('')
+
+/** 科目树节点（el-tree data）：组/子组为分支，科目为叶子 */
+interface CatalogNode {
+  key: string
+  label: string
+  itemTitle?: string
+  isItem: boolean
+  disabled: boolean
+  templateKey?: string | null
+  children: CatalogNode[]
+}
+
+function toTreeNodes(groups: CatalogGroupOut[], prefix: string): CatalogNode[] {
+  return groups.map((g, i) => {
+    const key = `${prefix}/${i}-${g.name}`
+    const subs = toTreeNodes(g.subgroups || [], key)
+    const items: CatalogNode[] = (g.items || []).map((it) => ({
+      key: `${key}/${it.code}`,
+      label: `${it.code} ${it.title}`,
+      itemTitle: it.title,
+      isItem: true,
+      disabled: !it.template_key, // 未挂模板科目不可选（无保真写回载体）
+      templateKey: it.template_key ?? null,
+      children: [],
+    }))
+    return { key, label: g.name, isItem: false, disabled: false, children: [...subs, ...items] }
+  })
+}
+
+const catalogTree = computed(() => {
+  const tree = catalogs.value.find((c) => c.standard === catalogStandard.value)
+  return tree ? toTreeNodes(tree.groups, tree.standard) : []
+})
+
+async function loadCatalog(force = false) {
+  if (catalogs.value.length && !force) return
+  catalogLoading.value = true
+  catalogError.value = ''
+  try {
+    catalogs.value = await api.listCatalog()
+  } catch (err) {
+    catalogError.value = errText(err)
+  } finally {
+    catalogLoading.value = false
+  }
+}
+
+function onCatalogNodeClick(data: CatalogNode) {
+  if (!data.isItem || !data.templateKey) return
+  createForm.template_key = data.templateKey
+  if (!createForm.title) createForm.title = data.itemTitle ?? '' // 预填科目名，可自行修改
+}
 
 function openCreate() {
-  Object.assign(createForm, { title: '', template_id: '', rule_anchor_id: '', is_important: false })
+  Object.assign(createForm, { title: '', template_key: '', rule_anchor_id: '', is_important: false })
   createVisible.value = true
+  loadCatalog() // 失败可重试（降级：错误提示 + 重试按钮，不静默给错树）
 }
 
 async function submitCreate() {
-  if (!createForm.title || !createForm.template_id || !createForm.rule_anchor_id) {
-    ElMessage.warning('请填写底稿标题并选择模板与准则锚点')
+  if (!createForm.title || !createForm.template_key || !createForm.rule_anchor_id) {
+    ElMessage.warning('请填写底稿标题并选择科目模板与准则锚点')
     return
   }
   try {
@@ -240,10 +299,9 @@ async function saveRefs() {
 
 onMounted(async () => {
   try {
-    ;[projects.value, anchors.value, templates.value] = await Promise.all([
+    ;[projects.value, anchors.value] = await Promise.all([
       api.listProjectOptions(),
       api.listAnchors(),
-      api.listTemplates(),
     ])
   } catch (err) {
     ElMessage.error(errText(err))
@@ -269,31 +327,82 @@ onMounted(async () => {
             :value="p.id"
           />
         </el-select>
-        <el-button :loading="loading" :disabled="!projectId" @click="loadWorksheets">刷新</el-button>
-        <el-button v-if="canEdit && tab === 'ws'" type="primary" :disabled="!projectId" @click="openCreate">
+        <el-button
+          :loading="loading"
+          :disabled="!projectId"
+          @click="loadWorksheets"
+        >
+          刷新
+        </el-button>
+        <el-button
+          v-if="canEdit && tab === 'ws'"
+          type="primary"
+          :disabled="!projectId"
+          @click="openCreate"
+        >
           新建底稿
         </el-button>
       </el-space>
     </div>
 
     <el-tabs v-model="tab">
-      <el-tab-pane label="审计底稿" name="ws">
-        <el-table v-if="projectId" :data="worksheets" v-loading="loading" size="default">
-          <el-table-column prop="code" label="底稿编号" width="180" />
-          <el-table-column prop="title" label="标题" min-width="200" />
-          <el-table-column label="状态" width="100">
+      <el-tab-pane
+        label="审计底稿"
+        name="ws"
+      >
+        <el-table
+          v-if="projectId"
+          v-loading="loading"
+          :data="worksheets"
+          size="default"
+        >
+          <el-table-column
+            prop="code"
+            label="底稿编号"
+            width="180"
+          />
+          <el-table-column
+            prop="title"
+            label="标题"
+            min-width="200"
+          />
+          <el-table-column
+            label="状态"
+            width="100"
+          >
             <template #default="{ row }">
-              <el-tag :type="STATUS_TAG[row.status] ?? 'info'" size="small">{{ row.status }}</el-tag>
+              <el-tag
+                :type="STATUS_TAG[row.status] ?? 'info'"
+                size="small"
+              >
+                {{ row.status }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="current_version" label="版本" width="80" />
-          <el-table-column label="重要" width="72">
+          <el-table-column
+            prop="current_version"
+            label="版本"
+            width="80"
+          />
+          <el-table-column
+            label="重要"
+            width="72"
+          >
             <template #default="{ row }">
-              <el-tag v-if="row.is_important" type="danger" size="small">重要</el-tag>
+              <el-tag
+                v-if="row.is_important"
+                type="danger"
+                size="small"
+              >
+                重要
+              </el-tag>
               <span v-else>—</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="300">
+          <el-table-column
+            label="操作"
+            min-width="300"
+          >
             <template #default="{ row }">
               <el-button
                 v-if="canEdit && row.status === '草稿'"
@@ -303,7 +412,13 @@ onMounted(async () => {
               >
                 AI 初稿
               </el-button>
-              <el-button link type="primary" @click="openRuns(row)">AI 线索</el-button>
+              <el-button
+                link
+                type="primary"
+                @click="openRuns(row)"
+              >
+                AI 线索
+              </el-button>
               <el-button
                 v-if="row.file_key?.endsWith('.xlsx')"
                 link
@@ -339,32 +454,131 @@ onMounted(async () => {
             </template>
           </el-table-column>
         </el-table>
-        <el-empty v-else description="选择项目后查看底稿" :image-size="72" />
+        <el-empty
+          v-else
+          description="选择项目后查看底稿"
+          :image-size="72"
+        />
       </el-tab-pane>
 
-      <el-tab-pane label="函证台账" name="cf" lazy>
-        <ConfirmLedger :project-id="projectId" :can-edit="canEdit" />
+      <el-tab-pane
+        label="函证台账"
+        name="cf"
+        lazy
+      >
+        <ConfirmLedger
+          :project-id="projectId"
+          :can-edit="canEdit"
+        />
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 新建底稿（FR-03-03：模板 + 准则锚点必选，红线 2） -->
-    <el-dialog v-model="createVisible" title="新建底稿" width="520px">
+    <!-- 新建底稿（FR-03-03：科目树选模板 + 准则锚点必选，红线 2） -->
+    <el-dialog
+      v-model="createVisible"
+      title="新建底稿"
+      width="640px"
+    >
       <el-form label-width="96px">
-        <el-form-item label="底稿标题" required>
-          <el-input v-model="createForm.title" placeholder="如：货币资金审计表" />
+        <el-form-item
+          label="底稿标题"
+          required
+        >
+          <el-input
+            v-model="createForm.title"
+            placeholder="选择科目后自动预填，可自行修改"
+          />
         </el-form-item>
-        <el-form-item label="底稿模板" required>
-          <el-select v-model="createForm.template_id" placeholder="选择模板" style="width: 100%">
-            <el-option
-              v-for="t in templates"
-              :key="t.id"
-              :label="`${t.type}（${t.version}）`"
-              :value="t.id"
+        <el-form-item
+          label="科目模板"
+          required
+        >
+          <div class="catalog-panel">
+            <el-radio-group
+              v-model="catalogStandard"
+              size="small"
+            >
+              <el-radio-button
+                v-for="c in catalogs"
+                :key="c.standard"
+                :value="c.standard"
+              >
+                {{ c.standard }}
+              </el-radio-button>
+            </el-radio-group>
+            <!-- 降级：种子接口不可用 → 错误提示 + 重试（不静默给错树） -->
+            <el-alert
+              v-if="catalogError"
+              type="error"
+              :title="`科目目录加载失败：${catalogError}`"
+              :closable="false"
+              show-icon
+            >
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                @click="loadCatalog(true)"
+              >
+                重试
+              </el-button>
+            </el-alert>
+            <el-skeleton
+              v-else-if="catalogLoading"
+              :rows="4"
+              animated
             />
-          </el-select>
+            <el-tree
+              v-else-if="catalogTree.length"
+              :data="catalogTree"
+              node-key="key"
+              :props="{ label: 'label', children: 'children', disabled: 'disabled' }"
+              highlight-current
+              default-expand-all
+              :expand-on-click-node="false"
+              class="catalog-tree"
+              @node-click="onCatalogNodeClick"
+            >
+              <template #default="{ data }">
+                <span class="catalog-node">
+                  {{ data.label }}
+                  <el-tag
+                    v-if="data.isItem && data.templateKey"
+                    size="small"
+                    type="success"
+                  >
+                    已挂模板
+                  </el-tag>
+                  <el-tag
+                    v-else-if="data.isItem"
+                    size="small"
+                    type="info"
+                  >无模板</el-tag>
+                </span>
+              </template>
+            </el-tree>
+            <el-empty
+              v-else
+              description="科目目录为空（种子随版本发布，请联系管理员检查）"
+              :image-size="56"
+            />
+            <div
+              v-if="createForm.template_key"
+              class="catalog-selected"
+            >
+              已选：{{ createForm.template_key }}
+            </div>
+          </div>
         </el-form-item>
-        <el-form-item label="准则锚点" required>
-          <el-select v-model="createForm.rule_anchor_id" placeholder="选择准则锚点" style="width: 100%">
+        <el-form-item
+          label="准则锚点"
+          required
+        >
+          <el-select
+            v-model="createForm.rule_anchor_id"
+            placeholder="选择准则锚点"
+            style="width: 100%"
+          >
             <el-option
               v-for="a in anchors"
               :key="a.id"
@@ -382,39 +596,85 @@ onMounted(async () => {
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCreate">创建</el-button>
+        <el-button @click="createVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="submitCreate"
+        >
+          创建
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- AI 运行线索列表（FR-03-02 第三段确认；线索态醒目，未确认不可归档） -->
-    <el-drawer v-model="runsVisible" :title="`AI 运行线索 · ${current?.title ?? ''}`" size="520px">
+    <el-drawer
+      v-model="runsVisible"
+      :title="`AI 运行线索 · ${current?.title ?? ''}`"
+      size="520px"
+    >
       <el-alert
         type="info"
         :closable="false"
         show-icon
         title="AI 产物为线索态，采信后才落版本链（红线 1/R2）；不采信须附原因分类（§15-16）"
       />
-      <el-table :data="runs" size="small" class="runs-table">
-        <el-table-column prop="run_no" label="运行号" width="120" show-overflow-tooltip />
-        <el-table-column prop="module" label="模块" width="90" />
-        <el-table-column prop="model_version" label="模型版本" width="100" />
-        <el-table-column label="状态" width="100">
+      <el-table
+        :data="runs"
+        size="small"
+        class="runs-table"
+      >
+        <el-table-column
+          prop="run_no"
+          label="运行号"
+          width="120"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="module"
+          label="模块"
+          width="90"
+        />
+        <el-table-column
+          prop="model_version"
+          label="模型版本"
+          width="100"
+        />
+        <el-table-column
+          label="状态"
+          width="100"
+        >
           <template #default="{ row }">
-            <el-tag :type="row.status === '线索' ? 'warning' : 'success'" size="small">
+            <el-tag
+              :type="row.status === '线索' ? 'warning' : 'success'"
+              size="small"
+            >
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="90">
+        <el-table-column
+          label="操作"
+          width="90"
+        >
           <template #default="{ row }">
-            <el-button v-if="canEdit && row.status === '线索'" link type="primary" @click="openConfirm(row)">
+            <el-button
+              v-if="canEdit && row.status === '线索'"
+              link
+              type="primary"
+              @click="openConfirm(row)"
+            >
               确认
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!runs.length" description="暂无 AI 运行记录（草稿态可生成 AI 初稿）" :image-size="56" />
+      <el-empty
+        v-if="!runs.length"
+        description="暂无 AI 运行记录（草稿态可生成 AI 初稿）"
+        :image-size="56"
+      />
     </el-drawer>
 
     <!-- AI 复核标记确认（红线 1/R2 第三段） -->
@@ -427,32 +687,74 @@ onMounted(async () => {
     >
       <template v-if="confirmRun">
         <el-form label-width="96px">
-          <el-form-item label="运行号">{{ confirmRun.run_no }}</el-form-item>
-          <el-form-item label="复核结论" required>
+          <el-form-item label="运行号">
+            {{ confirmRun.run_no }}
+          </el-form-item>
+          <el-form-item
+            label="复核结论"
+            required
+          >
             <el-radio-group v-model="aiReviewForm.conclusion">
-              <el-radio value="采信">采信</el-radio>
-              <el-radio value="部分采信">部分采信</el-radio>
-              <el-radio value="不采信">不采信</el-radio>
+              <el-radio value="采信">
+                采信
+              </el-radio>
+              <el-radio value="部分采信">
+                部分采信
+              </el-radio>
+              <el-radio value="不采信">
+                不采信
+              </el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item v-if="aiReviewForm.conclusion === '不采信'" label="原因分类" required>
-            <el-select v-model="aiReviewForm.rejection_reason" placeholder="必选原因分类" style="width: 100%">
-              <el-option label="事实错误" value="事实错误" />
-              <el-option label="口径错误" value="口径错误" />
-              <el-option label="幻觉" value="幻觉" />
-              <el-option label="其他" value="其他" />
+          <el-form-item
+            v-if="aiReviewForm.conclusion === '不采信'"
+            label="原因分类"
+            required
+          >
+            <el-select
+              v-model="aiReviewForm.rejection_reason"
+              placeholder="必选原因分类"
+              style="width: 100%"
+            >
+              <el-option
+                label="事实错误"
+                value="事实错误"
+              />
+              <el-option
+                label="口径错误"
+                value="口径错误"
+              />
+              <el-option
+                label="幻觉"
+                value="幻觉"
+              />
+              <el-option
+                label="其他"
+                value="其他"
+              />
             </el-select>
           </el-form-item>
         </el-form>
       </template>
       <template #footer>
-        <el-button @click="confirmRun = null">取消</el-button>
-        <el-button type="primary" @click="submitAiReview">提交标记</el-button>
+        <el-button @click="confirmRun = null">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="submitAiReview"
+        >
+          提交标记
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 交叉索引编辑（FR-03-05：保存即断链校验，R7） -->
-    <el-dialog v-model="refsVisible" :title="`交叉索引 · ${current?.code ?? ''}`" width="560px">
+    <el-dialog
+      v-model="refsVisible"
+      :title="`交叉索引 · ${current?.code ?? ''}`"
+      width="560px"
+    >
       <el-alert
         v-if="brokenRefs.length"
         type="error"
@@ -460,28 +762,65 @@ onMounted(async () => {
         show-icon
         :title="`断链引用：${brokenRefs.join('、')}（引用编号在本项目不存在）`"
       />
-      <el-table :data="refRows" size="small">
-        <el-table-column label="被引用底稿编号" width="200">
+      <el-table
+        :data="refRows"
+        size="small"
+      >
+        <el-table-column
+          label="被引用底稿编号"
+          width="200"
+        >
           <template #default="{ row }">
-            <el-input v-model="row.code" placeholder="如 A2026-0001-WS002" />
+            <el-input
+              v-model="row.code"
+              placeholder="如 A2026-0001-WS002"
+            />
           </template>
         </el-table-column>
         <el-table-column label="引用说明">
           <template #default="{ row }">
-            <el-input v-model="row.note" placeholder="选填，≤200 字" />
+            <el-input
+              v-model="row.note"
+              placeholder="选填，≤200 字"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80">
+        <el-table-column
+          label="操作"
+          width="80"
+        >
           <template #default="{ $index }">
-            <el-button link type="danger" @click="refRows.splice($index, 1)">移除</el-button>
+            <el-button
+              link
+              type="danger"
+              @click="refRows.splice($index, 1)"
+            >
+              移除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
-      <el-button link type="primary" class="add-ref" @click="addRef">+ 添加引用</el-button>
-      <div class="hint block-hint">仅草稿态可编辑；保存为全量覆盖并自动校验断链（R7）</div>
+      <el-button
+        link
+        type="primary"
+        class="add-ref"
+        @click="addRef"
+      >
+        + 添加引用
+      </el-button>
+      <div class="hint block-hint">
+        仅草稿态可编辑；保存为全量覆盖并自动校验断链（R7）
+      </div>
       <template #footer>
-        <el-button @click="refsVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveRefs">保存</el-button>
+        <el-button @click="refsVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="saveRefs"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -502,6 +841,31 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
   font-size: 12px;
   margin-left: 12px;
+}
+.catalog-panel {
+  width: 100%;
+}
+.catalog-panel .el-radio-group {
+  margin-bottom: 8px;
+}
+.catalog-tree {
+  width: 100%;
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  padding: 4px;
+  box-sizing: border-box;
+}
+.catalog-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.catalog-selected {
+  margin-top: 6px;
+  color: var(--el-color-success);
+  font-size: 12px;
 }
 .runs-table {
   margin-top: 12px;

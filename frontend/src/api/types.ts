@@ -142,9 +142,35 @@ export interface AiDraftOut {
 
 export interface WorksheetCreateBody {
   title: string
-  template_id: string
+  /** 模板来源二选一：Template 行 id 或科目目录模板键 */
+  template_id?: string | null
+  template_key?: string | null
   rule_anchor_id: string
   is_important: boolean
+}
+
+// ---------------------------------------------------------------------------
+// 科目目录树（数据即代码种子 → 底稿工作台科目树数据源；企业 132 挂 77 / 小企业 99 挂 49）
+// ---------------------------------------------------------------------------
+export interface CatalogItemOut {
+  code: string
+  title: string
+  stage?: number | null
+  /** 挂载模板键（templates/cas|sme/{code}.xlsx）的科目可发起 AI 保真写回底稿 */
+  template_key?: string | null
+}
+
+export interface CatalogGroupOut {
+  name: string
+  stage?: number | null
+  subgroups: CatalogGroupOut[]
+  items: CatalogItemOut[]
+}
+
+export interface CatalogOut {
+  standard: string
+  version: string
+  groups: CatalogGroupOut[]
 }
 
 /** AI 复核标记（红线 1/R2 第三段；不采信必附原因分类 §15-16） */

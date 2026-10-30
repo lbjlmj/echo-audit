@@ -4,6 +4,7 @@ import type {
   AiDraftOut,
   AiReviewBody,
   AnchorOut,
+  CatalogOut,
   CrossRefsOut,
   ProjectOptionOut,
   ReviewBody,
@@ -15,6 +16,13 @@ import type {
 /** 底稿工作台可选项目（编制人无 project.approve，/projects 403，用本视图） */
 export function listProjectOptions() {
   return http.get<never, ProjectOptionOut[]>('/worksheets/projects')
+}
+
+/** 科目目录树（数据即代码种子；?standard= 按准则过滤，缺省两准则全量） */
+export function listCatalog(standard?: string) {
+  return http.get<never, CatalogOut[]>('/worksheets/catalog', {
+    params: standard ? { standard } : {},
+  })
 }
 
 export function listWorksheets(projectId: string) {
