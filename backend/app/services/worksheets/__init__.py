@@ -1,4 +1,5 @@
 """worksheets 包：FR-03 底稿域业务逻辑（AI 初稿三段式 / 六状态流转 / 三层材料拦截）。"""
+from .catalog import list_catalog
 from .service import (
     Locked,
     NotFound,
@@ -34,6 +35,7 @@ __all__ = [
     "get_worksheet_file",
     "list_ai_runs",
     "list_anchors",
+    "list_catalog",
     "list_project_options",
     "list_templates",
     "list_worksheets",

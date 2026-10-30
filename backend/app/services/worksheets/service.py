@@ -32,6 +32,7 @@ from ...models.project import AuditProject, Client
 from ...models.risk import Materiality
 from ...models.user import User
 from ...models.worksheet import Worksheet, WorksheetReview, WorksheetVersion
+from . import catalog
 from . import render as ws_render
 from . import review_render
 
@@ -200,16 +201,26 @@ def append_version(
 
 def create_worksheet(
     db: Session, operator: User, project_id: str, *,
-    title: str, template_id: str, rule_anchor_id: str, is_important: bool = False,
+    title: str, rule_anchor_id: str, is_important: bool = False,
+    template_id: str | None = None, template_key: str | None = None,
 ) -> Worksheet:
-    """创建底稿（worksheet.edit ≥ OPERATE）：准则锚点随创建强制带出（FR-03-03，红线 2）。"""
+    """创建底稿（worksheet.edit ≥ OPERATE）：准则锚点随创建强制带出（FR-03-03，红线 2）。
+
+    模板来源二选一：template_id（模板矩阵 Template 行 id）优先；template_key
+    （科目目录树键，如 templates/cas/4101.xlsx）按 (type, version) 幂等登记
+    Template 行（catalog.resolve_template_by_key 单点），键不在种子中即拒绝。
+    """
     assert_allowed(operator.global_role, "worksheet.edit", Level.OPERATE)
     project = db.get(AuditProject, project_id)
     if project is None:
         raise NotFound(CODE_NOT_FOUND)
     _assert_writable(project)
-    if db.get(Template, template_id) is None:
-        raise NotFound(f"{CODE_NOT_FOUND} 模板不存在")
+    if template_id is not None:
+        if db.get(Template, template_id) is None:
+            raise NotFound(f"{CODE_NOT_FOUND} 模板不存在")
+        tpl_id = template_id
+    else:
+        tpl_id = catalog.resolve_template_by_key(db, template_key or "").id
     anchor = db.get(RuleAnchor, rule_anchor_id)
     if anchor is None:
         raise NotFound(f"{CODE_NOT_FOUND} 准则锚点不存在（红线 2：锚点不可空）")
@@ -219,7 +230,7 @@ def create_worksheet(
     )
     ws = Worksheet(
         project_id=project_id, code=f"{project.project_no}-WS{(seq or 0) + 1:03d}",
-        title=title, template_id=template_id, rule_anchor_id=rule_anchor_id,
+        title=title, template_id=tpl_id, rule_anchor_id=rule_anchor_id,
         is_important=is_important, status="草稿", current_version="v0",
     )
     db.add(ws)

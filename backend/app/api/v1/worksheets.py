@@ -12,6 +12,7 @@ from ...db import get_db
 from ...models.user import User
 from ...schemas.worksheet import (
     AnchorOut,
+    CatalogOut,
     CrossRefsIn,
     CrossRefsOut,
     AiDraftOut,
@@ -37,6 +38,20 @@ def list_worksheets(
 ) -> list[WorksheetOut]:
     rows = worksheets.list_worksheets(db, user, project_id)
     return [WorksheetOut.model_validate(r) for r in rows]
+
+
+@router.get("/catalog", response_model=list[CatalogOut],
+            summary="科目目录树（数据即代码种子；?standard= 按准则过滤，缺省两准则全量）")
+def list_catalog(
+    standard: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[CatalogOut]:
+    try:
+        seeds = worksheets.list_catalog(standard)
+    except ValueError as exc:  # 未知准则 → 422（宁可拒绝不给错树）
+        raise HTTPException(422, str(exc)) from exc
+    return [CatalogOut.model_validate(s) for s in seeds]
 
 
 @router.get("/anchors", response_model=list[AnchorOut],
@@ -120,9 +135,10 @@ def create_worksheet(
         ws = worksheets.create_worksheet(
             db, user, project_id,
             title=body.title, template_id=body.template_id,
+            template_key=body.template_key,
             rule_anchor_id=body.rule_anchor_id, is_important=body.is_important,
         )
-    except (worksheets.NotFound, worksheets.Locked, worksheets.ProjectFrozen) as exc:
+    except (worksheets.NotFound, worksheets.Locked, worksheets.ProjectFrozen, ValueError) as exc:
         raise _http_for(exc) from exc
     return WorksheetOut.model_validate(ws)
 

@@ -3,14 +3,27 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class WorksheetCreateIn(BaseModel):
     title: str = Field(min_length=2, max_length=200)
-    template_id: str = Field(min_length=1, description="行业模板（模板矩阵）")
+    template_id: str | None = Field(
+        default=None, min_length=1, description="模板矩阵 Template 行 id（与 template_key 二选一）"
+    )
+    template_key: str | None = Field(
+        default=None, min_length=1,
+        description="科目目录树模板键（templates/cas|sme/{code}.xlsx，与 template_id 二选一）",
+    )
     rule_anchor_id: str = Field(min_length=1, description="准则锚点（FR-03-03，红线 2）")
     is_important: bool = Field(default=False, description="重要底稿（§15-11，触发终审）")
+
+    @model_validator(mode="after")
+    def _one_template_source(self) -> "WorksheetCreateIn":
+        """模板来源二选一：Template 行 id 或科目目录模板键，都不传即拒绝。"""
+        if not self.template_id and not self.template_key:
+            raise ValueError("template_id 与 template_key 必须提供其一")
+        return self
 
 
 class AnchorOut(BaseModel):
@@ -110,3 +123,35 @@ class ReviewSheetOut(BaseModel):
     worksheet_status: str
     template_key: str
     file_key: str
+
+
+# ---------------------------------------------------------------------------
+# 科目目录树（数据即代码种子 → 底稿工作台科目树数据源）
+# ---------------------------------------------------------------------------
+class CatalogItemOut(BaseModel):
+    """科目条目：挂 template_key 的项可发起 AI 保真写回底稿（4xxx 实质性程序）。"""
+
+    code: str
+    title: str
+    stage: int | None = None
+    template_key: str | None = None
+
+
+class CatalogGroupOut(BaseModel):
+    """阶段组（如「风险评估工作底稿」）；subgroups 为子组（如「（一）控制测试」）。"""
+
+    name: str
+    stage: int | None = None
+    subgroups: list["CatalogGroupOut"] = []
+    items: list[CatalogItemOut] = []
+
+
+class CatalogOut(BaseModel):
+    """一个准则的科目目录树（企业会计准则 132 条挂 77 / 小企业会计准则 99 条挂 49）。"""
+
+    standard: str
+    version: str
+    groups: list[CatalogGroupOut]
+
+
+CatalogGroupOut.model_rebuild()  # 递归前向引用（subgroups 自嵌套）
