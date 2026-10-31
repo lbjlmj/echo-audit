@@ -1,0 +1,12 @@
+# api/worker/beat/migrate 镜像构建上下文排除项（backend/）
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+tests/
+echo_dev.db
+# 本地对象存储运行产物（.gitignore 同口径，容器内由 MinIO 承载）
+data/objects/
+# 模板源材料暂存区（数百 xlsx/docx，正式模板在 templates/ 各域目录）
+templates/_staging/

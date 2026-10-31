@@ -1,0 +1,9 @@
+# web 镜像构建上下文排除项（仓库根；构建仅需 frontend/ 与 deploy/nginx.conf）
+.git/
+backend/
+docs/
+deploy/offline-installer/
+frontend/node_modules/
+frontend/dist/
+*.md
+*.db

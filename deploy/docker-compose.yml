@@ -1,5 +1,5 @@
 # Echo 审计作业平台 — 七容器部署（TECH_DESIGN §2.1/§4.7）
-# web / api / worker / beat / pg / redis / minio
+# web / api / worker / beat / pg / redis / minio（+ migrate 一次性迁移容器）
 # 全离线安装：deploy/offline-installer（镜像 tar + 初始化向导，目标 2 小时/所）
 
 services:
@@ -38,10 +38,12 @@ services:
       - minio_data:/data
     # SSE 加密与 WORM 版本锁在初始化脚本配置（§4.2.6、§4.3.4）
 
-  api:
+  # 一次性迁移容器：表结构唯一来源（alembic env.py 读 ECHO_DATABASE_URL）
+  migrate:
     build:
       context: ../backend
       dockerfile: ../deploy/api.Dockerfile
+    command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
     environment: &backend_env
       ECHO_DATABASE_URL: postgresql+psycopg://echo:${ECHO_PG_PASSWORD:-echo}@pg:5432/echo_audit
       ECHO_REDIS_URL: redis://redis:6379/0
@@ -55,33 +57,50 @@ services:
     depends_on:
       pg:
         condition: service_healthy
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/api.Dockerfile
+    environment: *backend_env
+    ports:
+      - "8000:8000" # 演练/调试直连；生产可移除，统一走 web:8080 反代
+    depends_on:
+      pg:
+        condition: service_healthy
       redis:
         condition: service_healthy
       minio:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
 
+  # 依赖装在 uv 管理的 .venv，须以 uv run 启动（裸 celery 不在 PATH）
   worker:
     build:
       context: ../backend
       dockerfile: ../deploy/api.Dockerfile
-    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "-l", "info"]
+    command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app.celery_app", "worker", "-l", "info"]
     environment: *backend_env
     depends_on:
-      - api
+      migrate:
+        condition: service_completed_successfully
 
   beat:
     build:
       context: ../backend
       dockerfile: ../deploy/api.Dockerfile
-    command: ["celery", "-A", "app.workers.celery_app.celery_app", "beat", "-l", "info"]
+    command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app.celery_app", "beat", "-l", "info"]
     environment: *backend_env
     depends_on:
-      - worker
+      migrate:
+        condition: service_completed_successfully
 
   web:
     build:
-      context: ../frontend
-      dockerfile: ../deploy/web.Dockerfile
+      # context 为仓库根：nginx.conf 在 deploy/ 下，须与 frontend/ 一同可见
+      context: ..
+      dockerfile: deploy/web.Dockerfile
     ports:
       - "8080:80"
     depends_on:
