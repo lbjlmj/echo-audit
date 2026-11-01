@@ -480,6 +480,9 @@ def _build_archive_package(
     zip_sha256 = hashlib.sha256(zip_bytes).hexdigest()
     archive_object_key = f"archives/{project.id}/{package_hash}.zip"
     storage.save_bytes(archive_object_key, zip_bytes)
+    # 归档包 WORM 锁（TECH_DESIGN §4.3 红线 1/3：归档不可变）
+    # Linux chattr +a；非 Linux 降级 chmod 444；差错修订走副本 v(n+1)
+    storage.freeze_archive(archive_object_key)
     return {
         "package_hash": package_hash, "archive_object_key": archive_object_key,
         "zip_sha256": zip_sha256, "zip_members": len(members), "missing_objects": len(missing),

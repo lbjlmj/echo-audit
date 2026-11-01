@@ -8,9 +8,9 @@
 | --- | --- |
 | 前端 | Vue 3 + TypeScript + Element Plus + Vite + Pinia |
 | 后端 | Python 3.13 + FastAPI + SQLAlchemy 2.0 + Pydantic v2 |
-| 存储 | PostgreSQL 16 + pgvector、Redis 7、MinIO |
+| 存储 | PostgreSQL 16 + pgvector、Redis 7、本地文件存储卷 |
 | 异步 | Celery + Celery Beat |
-| 部署 | Docker Compose 七容器，支持全离线安装 |
+| 部署 | Docker Compose 六容器，支持全离线安装 |
 
 ## 仓库结构
 

@@ -20,11 +20,10 @@ class Settings(BaseSettings):
     # 数据库（PostgreSQL 16 + pgvector，一库两用）
     database_url: str = "postgresql+psycopg://echo:echo@localhost:5432/echo_audit"
     redis_url: str = "redis://localhost:6379/0"
-    minio_endpoint: str = "localhost:9000"
-    minio_access_key: str = ""
-    minio_secret_key: str = ""
-    minio_bucket: str = "echo-audit"
-    storage_dir: str = ""  # Phase 1 本地对象存储根目录（空 = ./data/objects）；MinIO 接线点见 core/storage
+    # 对象存储：本地文件系统（不引入 MinIO，开源版已归档停止维护）。
+    # 静态加密靠 OS 层（LUKS/BitLocker 加密盘），归档 WORM 靠 chattr +a（见 storage.py）。
+    # 键即相对路径，目录结构按业务域分层（worksheets/、confirmations/、reports/、archives/）。
+    storage_dir: str = ""  # 空 = ./data/objects（dev 口径）；生产挂独立加密卷
 
     # 认证（开发默认值 ≥32 字节避免 HMAC 弱密钥告警；生产必改）
     jwt_secret: str = "change-me-in-production-echo-audit-0123456789abcdef"

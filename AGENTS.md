@@ -18,12 +18,12 @@ Echo——中小事务所智能审计作业系统。将审计作业流程（立�
 | --- | --- |
 | 前端 | Vue 3 + TypeScript + Element Plus + Vite + Pinia（薄前端，路由守卫仅兜底） |
 | 后端 | Python 3.13 + FastAPI + SQLAlchemy 2.0 + Pydantic v2 |
-| 存储 | PostgreSQL 16 + pgvector（一库两用，不引入独立向量库/图数据库）、Redis 7、MinIO |
+| 存储 | PostgreSQL 16 + pgvector（一库两用，不引入独立向量库/图数据库）、Redis 7、本地文件存储卷（不引入 MinIO，见 §4.7） |
 | 异步 | Celery + Celery Beat |
 | Excel | openpyxl 3.1.5 + xlrd（保真写回 + 结构指纹校验） |
 | 算法 | 孤立森林/本福特定律纯 Python 零依赖实现（Phase 2 验收口径） |
 | 大模型 | vLLM 私有化，默认关闭（见下方门禁） |
-| 部署 | Docker Compose 七容器（web/api/worker/beat/pg/redis/minio），支持全离线安装 |
+| 部署 | Docker Compose 六容器（web/api/worker/beat/pg/redis），支持全离线安装 |
 
 ## 常用命令
 
@@ -42,7 +42,7 @@ pnpm build                                 # 生产构建
 pnpm lint                                  # ESLint + Prettier 检查
 
 # 部署（deploy/）
-docker compose -f deploy/docker-compose.yml up -d      # 七容器启动
+docker compose -f deploy/docker-compose.yml up -d      # 六容器启动
 docker compose -f deploy/docker-compose.yml logs -f api
 ```
 

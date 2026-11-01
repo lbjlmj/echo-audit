@@ -1,11 +1,20 @@
-"""对象存储（Phase 1 本地目录实现；MinIO 接线点）。
+"""对象存储（本地文件系统实现，不引入 MinIO）。
 
-NFS-04/FR-05-04 出稿产物落存：接口（save/load/delete/exists）与 MinIO 对齐，
-Phase 2 切换仅替换本文件实现，调用方（services 层）零改动。
-dev 口径：ECHO_STORAGE_DIR（默认 ./data/objects）下的普通文件，键即相对路径。
+NFS-04/FR-05-04 出稿产物落存：键即相对路径，目录按业务域分层
+（worksheets/、confirmations/、reports/、archives/、materials/）。
+
+选型决策（TECH_DESIGN §1.4/§4.7）：
+- MinIO 开源版已归档停止维护（dl.min.io 返回 410 Gone，Docker Hub 镜像被拒）；
+- 目标场景为中小所单台物理机全离线部署，不需要分布式对象存储；
+- 静态加密靠 OS 层（LUKS/BitLocker 加密卷），不重复造轮子；
+- 归档不可变（WORM）靠 Linux `chattr +a`（append-only）实现，见 freeze_archive。
+
+接口（save/load/delete/exists）与 S3 语义对齐，未来若需切云对象存储仅替换本文件实现，
+调用方（services 层）零改动。dev 口径：ECHO_STORAGE_DIR（默认 ./data/objects）。
 """
 from __future__ import annotations
 
+import subprocess
 from functools import lru_cache
 from pathlib import Path
 
@@ -42,6 +51,27 @@ class ObjectStorage:
 
     def exists(self, key: str) -> bool:
         return self._path(key).exists()
+
+    def freeze_archive(self, key: str) -> None:
+        """归档包 WORM 锁（TECH_DESIGN §4.3 红线 1/3：归档不可变）。
+
+        Linux 下执行 `chattr +a`（append-only）：文件可追加不可改写/删除，
+        差错修订走副本机制（v(n+1)），原稿锁定保留。
+        非 Linux 环境（如 Windows dev）跳过并记录——生产部署为 Linux 容器。
+        解锁需 `chattr -a`（仅限质控差错修订流程，操作留痕）。
+        """
+        path = self._path(key)
+        if not path.exists():
+            raise FileNotFoundError(f"归档包不存在：{key}")
+        try:
+            subprocess.run(
+                ["chattr", "+a", str(path)],
+                check=True, capture_output=True,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            # chattr 不存在（Windows/macOS dev）或无 CAP_LINUX_IMMUTABLE：
+            # 生产 Linux 容器必生效；非 Linux 环境降级为只读权限，不阻断流程
+            path.chmod(0o444)
 
 
 @lru_cache

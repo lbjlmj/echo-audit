@@ -1,5 +1,7 @@
-# Echo 审计作业平台 — 七容器部署（TECH_DESIGN §2.1/§4.7）
-# web / api / worker / beat / pg / redis / minio（+ migrate 一次性迁移容器）
+# Echo 审计作业平台 — 六容器部署（TECH_DESIGN §2.1/§4.7）
+# web / api / worker / beat / pg / redis（+ migrate 一次性迁移容器）
+# 对象存储采用本地文件卷（objects_data），不引入 MinIO（开源版已归档停止维护）；
+# 静态加密靠 OS 层（LUKS/BitLocker），归档 WORM 靠 chattr +a（见 storage.py）
 # 全离线安装：deploy/offline-installer（镜像 tar + 初始化向导，目标 2 小时/所）
 
 services:
@@ -28,12 +30,6 @@ services:
       timeout: 3s
       retries: 20
 
-  # MinIO 开源版已归档停止维护（dl.min.io 返回 410 Gone，Docker Hub 镜像被拒）
-  # 后端当前仅配置占位、无实际 minio client 调用，暂移除；待选型 SeaweedFS/本地存储替代
-  # minio:
-  #   image: bitnami/minio:2024.10.13
-  #   ...
-
   # 一次性迁移容器：表结构唯一来源（alembic env.py 读 ECHO_DATABASE_URL）
   migrate:
     build:
@@ -43,9 +39,7 @@ services:
     environment: &backend_env
       ECHO_DATABASE_URL: postgresql+psycopg://echo:${ECHO_PG_PASSWORD:-echo}@pg:5432/echo_audit
       ECHO_REDIS_URL: redis://redis:6379/0
-      ECHO_MINIO_ENDPOINT: minio:9000
-      ECHO_MINIO_ACCESS_KEY: ${ECHO_MINIO_USER:-echo}
-      ECHO_MINIO_SECRET_KEY: ${ECHO_MINIO_PASSWORD:-echo12345}
+      ECHO_STORAGE_DIR: /srv/data/objects  # 本地对象存储卷（见 volumes.objects_data）
       ECHO_JWT_SECRET: ${ECHO_JWT_SECRET:-change-me-in-production}
       ECHO_LLM_ENABLED: "false"        # 大模型通道默认关闭（§15-15）
       ECHO_SF_EXPRESS_ENABLED: "false" # 顺丰通道默认关闭（§15-9）
@@ -59,6 +53,8 @@ services:
       context: ../backend
       dockerfile: ../deploy/api.Dockerfile
     environment: *backend_env
+    volumes:
+      - objects_data:/srv/data/objects  # 出稿产物持久化（底稿/函证/报告/归档包）
     ports:
       - "8000:8000" # 演练/调试直连；生产可移除，统一走 web:8080 反代
     depends_on:
@@ -76,6 +72,8 @@ services:
       dockerfile: ../deploy/api.Dockerfile
     command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app.celery_app", "worker", "-l", "info"]
     environment: *backend_env
+    volumes:
+      - objects_data:/srv/data/objects
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -86,6 +84,8 @@ services:
       dockerfile: ../deploy/api.Dockerfile
     command: ["uv", "run", "--no-sync", "celery", "-A", "app.workers.celery_app.celery_app", "beat", "-l", "info"]
     environment: *backend_env
+    volumes:
+      - objects_data:/srv/data/objects
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -103,3 +103,4 @@ services:
 volumes:
   pg_data:
   redis_data:
+  objects_data:  # 出稿产物持久化卷（底稿/函证/报告/归档包/AI 留痕文件）

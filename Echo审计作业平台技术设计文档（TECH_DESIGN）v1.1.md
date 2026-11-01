@@ -17,7 +17,7 @@ PRD 四条硬约束决定本方案的总体形态：
 
 **五层架构**（本方案定义，承接 PRD §13 产品形态）：入口层 = Web 前端 + 统一入口（audit-hub）；AI 层 = `ai/` 模块；引擎层 = `services/` + `engine/`；模板层 = `templates/` 行业模板矩阵；准则层 = `RuleAnchor` 准则映射总表库。映射关系见 §2。
 
-**分期总叙事**：PRD §10 要求 Phase 2 的 AI 模块"在现有运行环境零新增依赖前提下跑通"。因此核心算法（风险评估、全量异常评分）为**纯 Python 零第三方依赖**实现，先以 Skill zip 形态交付并跑通 Phase 2 验收；Web 平台组件（PG/Redis/MinIO/Celery）作为 P0 卡控能力的承载面在 Phase 2 中后期引入，Phase 3 完成双项目实战。详见 §5 分期交付映射。
+**分期总叙事**：PRD §10 要求 Phase 2 的 AI 模块"在现有运行环境零新增依赖前提下跑通"。因此核心算法（风险评估、全量异常评分）为**纯 Python 零第三方依赖**实现，先以 Skill zip 形态交付并跑通 Phase 2 验收；Web 平台组件（PG/Redis/本地对象存储/Celery）作为 P0 卡控能力的承载面在 Phase 2 中后期引入，Phase 3 完成双项目实战。详见 §5 分期交付映射。
 
 ---
 
@@ -31,12 +31,12 @@ PRD 四条硬约束决定本方案的总体形态：
 | 后端框架 | Python FastAPI + SQLAlchemy 2.0 + Pydantic v2 | Python 3.13 | Phase 2 中后期 |
 | 主数据库 | PostgreSQL 16（含 pgvector 扩展） | PG 16+ | Phase 2 中后期 |
 | 缓存/队列 | Redis 7（会话、发布订阅、Celery broker） | Redis 7+ | Phase 2 中后期 |
-| 对象存储 | MinIO（底稿、凭证影像等原始文件） | 单机模式 | Phase 2 中后期 |
+| 对象存储 | 本地文件系统卷（底稿、凭证影像等原始文件） | 单机命名卷 | Phase 2 中后期 |
 | 异步任务 | Celery（大文件解析、全量异常评分、附注生成）+ Celery Beat（函证超期定时提醒） | — | Phase 2 中后期 |
 | Excel 引擎 | openpyxl 3.1.5 + xlrd（与 PRD NFS-04 一致，不引入 LibreOffice） | — | Phase 1 起既有 |
 | 核心算法 | 纯 Python 实现（孤立森林/本福特定律/规则引擎，零第三方依赖，PRD §10 Phase 2 验收口径） | — | Phase 1–2 |
 | AI 推理 | 本地 Python 分析 + 私有化大模型 vLLM（**默认关闭，三条件启用**，见 1.5） | — | Phase 3 |
-| 部署 | Docker Compose 一键离线安装包（web / api / worker / beat / pg / redis / minio 七容器） | — | Phase 2 中后期 |
+| 部署 | Docker Compose 一键离线安装包（web / api / worker / beat / pg / redis 六容器） | — | Phase 2 中后期 |
 
 ### 1.2 前端：Vue 3 + TypeScript + Element Plus
 
@@ -55,7 +55,7 @@ PRD 四条硬约束决定本方案的总体形态：
 - **安全与契约**：Pydantic 强类型出入参校验（防注入的第一道门）、自动 OpenAPI 文档（接口即文档，降低维护成本）、OAuth2/JWT 标准组件化。
 - **易于维护部署**：单语言栈 = 单依赖清单 = 单镜像；配合 Docker Compose，一所一套，`docker compose up -d` 完成部署。
 
-### 1.4 数据库：PostgreSQL 16 + pgvector + Redis + MinIO
+### 1.4 数据库：PostgreSQL 16 + pgvector + Redis + 本地对象存储
 
 **选型理由**：
 
@@ -66,7 +66,7 @@ PRD 四条硬约束决定本方案的总体形态：
   - **知识图谱承载**：法规关联以邻接表（`RuleRelation`，见 §3.2）存储于 PG，支撑 FR-07-02 图谱路由，不引入图数据库；
   - **审计友好**：触发器与逻辑复制可做 append-only 留痕兜底，与哈希链双保险（见 4.3）。
 - **Redis**：会话、接口幂等锁、底稿编辑乐观锁版本号、Celery broker、SSE 进度推送的发布订阅。**不落任何客户业务数据**，纯易失态。
-- **MinIO**：原始资料包、底稿文件、函证扫描件的对象存储，服务端加密（SSE-S3）+ 按项目桶隔离；文件路径不入库明文，入库的是带密钥派生的对象键。
+- **本地对象存储**：原始资料包、底稿文件、函证扫描件以本地文件系统卷持久化（Docker `objects_data` 命名卷挂 `/srv/data/objects`），不引入 MinIO——其开源版已归档停止维护（dl.min.io 返回 410 Gone，Docker Hub 镜像被拒），且中小所单台物理机部署不需要分布式对象存储。静态加密靠 OS 层（LUKS/BitLocker 加密卷）；归档不可变（WORM）靠 Linux `chattr +a`（append-only）实现，差错修订走副本机制 v(n+1)，原稿锁定保留；文件路径不入库明文，入库的是带密钥派生的对象键。
 - **多所形态兼容**：所有业务表携带 `tenant_id`（=事务所），默认单所部署时恒为常量；未来区域托管形态按 tenant 分桶+RLS 隔离，数据模型不返工。
 - **排除项**：MySQL（JSONB/RLS/pgvector 三项均弱）；MongoDB（事务与关联查询弱，审计场景吃亏）；独立向量库（增加运维面，中小所养不起 DBA）；独立图数据库（法规关联规模小，邻接表足够）。
 
@@ -130,9 +130,9 @@ echo-audit/
 │   └── tests/
 │
 ├── deploy/
-│   ├── docker-compose.yml           # web / api / worker / beat / pg / redis / minio 七容器
+│   ├── docker-compose.yml           # web / api / worker / beat / pg / redis 六容器
 │   ├── offline-installer/           # 全离线一键安装（镜像 tar 包 + 初始化脚本）
-│   └── backup/                      # pg_dump + MinIO 同步的定时备份脚本（RPO≤24h，恢复演练脚本同交付）
+│   └── backup/                      # pg_dump + 对象存储卷打包的定时备份脚本（RPO≤24h，恢复演练脚本同交付）
 └── docs/
 ```
 
@@ -303,7 +303,7 @@ erDiagram
 3. **职责分离的机器可验**：ProjectMember 上"编制人与复核人不得同一 User"由库约束+服务校验双重保证，双签缺一即阶段门锁死（FR-05-01、§7 R1）。
 4. **数据分级驱动管控**：Client.data_level 为策略开关——核心级：禁用一切导出接口与**一切云端通道（含 Skill 资产库出站同步）**、AI 推理强制本地模型、对象存储独立加密桶；重要级：导出走审批留痕；一般级：常规管控。脱敏在服务层统一切面完成，不由各模块自行实现。
 5. **Skill 与数据分离（两端密钥碰合，FR-07-05）**：Skill 包（无数据、无局域网路径）可上云端资产库；运行时本地密钥 A + 云端密钥 B 派生会话密钥拉取，任一端撤销即失效。Skill 内容静态扫描禁止出现 IP/路径/凭证，违规在构建期拦截。
-6. **静态与传输安全**：MinIO SSE 加密、PG TDE 可选、全链路 TLS；备份加密后落本地 NAS（RPO≤24h），备份与恢复演练脚本随部署包交付。
+6. **静态与传输安全**：对象存储加密卷（LUKS/BitLocker）+ PG TDE 可选、全链路 TLS；备份加密后落本地 NAS（RPO≤24h），备份与恢复演练脚本随部署包交付。
 7. **部署隔离与出站白名单**：默认单所 Docker Compose 私有化，全离线安装；平台任何云端通道（Skill 资产库、模板更新、顺丰 API）只出不进客户数据，出站白名单制；顺丰适配器仅传输函证收件人、单号、物流状态等必要字段，函证金额等审计数据不出站。
 
 ### 4.3 审计留痕与不可篡改（红线 1/3、FR-06-02、PRD §4.6/§15-16）
@@ -354,8 +354,8 @@ erDiagram
 
 1. **一键离线安装**：镜像 tar + docker compose + 初始化向导（建所、建管理员、导入模板包），目标 2 小时内完成一所部署，无需驻场 IT。
 2. **版本化发布与回滚**：模板/Skill/代码同版本号发布，alembic 迁移可回滚；对应 build_audit_zips.py 的 zip 版本化管理传统；**ITC 评估记录随版本发布一并留档**（红线 6、NFS-05）。
-3. **备份即交付**：每日 pg_dump + MinIO 同步到本地备份盘（RPO≤24h，RTO 目标≤4h）的脚本随部署包内置，恢复演练脚本同交付。
-4. **资源弹性**：单所起步 8C16G 一台物理机即可（PG+Redis+MinIO+Web+API+Worker+Beat 全部容器化）；全量异常评分高峰可临时加 worker 容器横向扩。
+3. **备份即交付**：每日 pg_dump + 对象存储卷打包到本地备份盘（RPO≤24h，RTO 目标≤4h）的脚本随部署包内置，恢复演练脚本同交付。
+4. **资源弹性**：单所起步 8C16G 一台物理机即可（PG+Redis+本地对象存储+Web+API+Worker+Beat 全部容器化）；全量异常评分高峰可临时加 worker 容器横向扩。
 
 ---
 
@@ -364,7 +364,7 @@ erDiagram
 | 阶段 | 交付范围 | 技术形态 | 依赖约束 |
 | --- | --- | --- | --- |
 | Phase 1（1–2 周） | 准则映射总表库化（RuleAnchor）+ 行业模板库（templates/，以商洛鸿瑞怡园非上市模板为母本）+ 风险分级规则引擎（engine，§7 R5/R8） | 纯 Python + openpyxl，随 Skill zip 发布 | 零新增依赖 |
-| Phase 2（2–3 周） | 先行：ai_risk + ai_anomaly 零新增依赖跑通（Phase 2 验收项）；随后 Web 平台核心承载 P0：立项/阶段门/底稿 AI/留痕归档/数据工具分离；再挂函证/附注/质控 | Skill 家族 → FastAPI 平台（PG/Redis/MinIO/Celery 引入） | AI 验收项零新增依赖；平台组件为 P0 承载面 |
+| Phase 2（2–3 周） | 先行：ai_risk + ai_anomaly 零新增依赖跑通（Phase 2 验收项）；随后 Web 平台核心承载 P0：立项/阶段门/底稿 AI/留痕归档/数据工具分离；再挂函证/附注/质控 | Skill 家族 → FastAPI 平台（PG/Redis/本地对象存储/Celery 引入） | AI 验收项零新增依赖；平台组件为 P0 承载面 |
 | Phase 3（实战验证） | 双项目试跑（商洛鸿瑞怡园 2024 年报 + 鲲鹏物创 2025 底稿）、顺丰对接、P1 功能收口、私有化大模型（先租后买启动点） | 全栈 + integrations/sf_express | 出站白名单生效 |
 
 优先级对应：P0 = Phase 1–2（骨架与卡控类）；P1 = Phase 2（提效类）；P2 = Phase 3 后视反馈排期（增强类）。FR 级优先级以 PRD §5 各表为准。
