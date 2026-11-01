@@ -14,6 +14,9 @@ COPY skills ./skills
 # 科目目录种子（catalog.py 运行时读 /srv/data，缺目录即 500）
 COPY data ./data
 
+# 国内 pypi 镜像（容器内官方源超时）
+ENV UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+    PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev
 
 EXPOSE 8000
