@@ -60,10 +60,19 @@ Write-Output "[3/7] PostgreSQL 还原完成"
 # —— 4) objects 卷还原（侧车容器直写命名卷）——
 #      侧车用 redis:7-alpine（部署必在场镜像，离线环境零新增拉取）
 Run-Docker @("compose", "-f", $compose, "create", "api") "创建 api 容器（连带 objects_data 卷）失败"
-$cid = (& docker compose -f $compose ps -a --filter "service=api" -q 2>$null | Select-Object -First 1)
+# 定位容器用 label 过滤（compose ps 不支持 --filter service=，实测 unknown filter）
+$cid = (& docker ps -a --filter "label=com.docker.compose.service=api" --format "{{.ID}}" 2>$null | Select-Object -First 1)
 if (-not $cid) { throw "无法定位 api 容器" }
-$vol = (& docker inspect $cid --format '{{range .Mounts}}{{if eq .Destination "/srv/data/objects"}}{{.Name}}{{end}}{{end}}' 2>$null | Select-Object -First 1)
-if (-not $vol) { throw "无法定位 objects_data 卷（api 容器无 /srv/data/objects 挂载）" }
+# 挂载解析用无引号模板（Go 模板内双引号经 PS 传参会丢失，eq 比较会报
+# "unexpected / in operand"），输出「卷名=容器内路径;」对在 PS 侧拆解
+$mounts = (& docker inspect $cid --format "{{range .Mounts}}{{.Name}}={{.Destination}};{{end}}" 2>$null | Out-String).Trim()
+$vol = $null
+foreach ($pair in ($mounts -split ";")) {
+    if (-not $pair) { continue }
+    $mName, $mDest = $pair -split "=", 2
+    if ($mDest -eq "/srv/data/objects") { $vol = $mName; break }
+}
+if (-not $vol) { throw "无法定位 objects_data 卷（api 容器无 /srv/data/objects 挂载）：$mounts" }
 
 & docker run --rm -v "${vol}:/data" redis:7-alpine sh -c "rm -rf /data/* /data/.[!.]* /data/..?* 2>/dev/null; true" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "objects 卷清空命令失败 (exit=$LASTEXITCODE)" }
