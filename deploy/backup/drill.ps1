@@ -87,7 +87,8 @@ else { Write-Output "PASS：objects 文件数一致（$($post.objects)）" }
 
 # —— 6) 登录冒烟（鉴权链路 + 密码哈希还原验证）——
 Write-Output "=== [6/6] 登录冒烟 ==="
-if ($TestLogin -and $TestLogin -contains ":") {
+# 注意：PS 的 -contains 是数组成员判断，字符串恒为 $false，必须用 .Contains()
+if ($TestLogin -and $TestLogin.Contains(":")) {
     $parts = $TestLogin -split ":", 2
     try {
         $body = @{ login_name = $parts[0]; password = $parts[1] } | ConvertTo-Json
